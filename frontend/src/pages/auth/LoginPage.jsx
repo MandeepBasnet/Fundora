@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Eye } from 'lucide-react';
-import { Button, Card, Input } from '../components/ui';
-import { FundoraLogo } from '../components/FundoraLogo';
+import { Button, Card, Input } from '../../components/ui';
+import { FundoraLogo } from '../../components/FundoraLogo';
 
 export function LoginPage() {
   return (
