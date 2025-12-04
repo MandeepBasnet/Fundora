@@ -3,82 +3,10 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, ShieldCheck, Wallet, TrendingUp } from 'lucide-react';
 import { Button } from '../components/ui';
 import { ProjectCard } from '../components/ProjectCard';
+import { browseCampaigns } from '../mockData';
 
 export function HomePage() {
-  const trendingProjects = [
-    {
-      id: 1,
-      title: "Smart Agriculture IoT System for Nepali Farmers",
-      creator: "TechFarm Nepal",
-      image: "agriculture technology",
-      goal: 500000,
-      raised: 387500,
-      backers: 156,
-      daysLeft: 12,
-      milestoneVerified: true,
-      category: "Technology"
-    },
-    {
-      id: 2,
-      title: "Documentary: Preserving Traditional Nepali Art Forms",
-      creator: "Heritage Filmmakers",
-      image: "traditional nepal art",
-      goal: 300000,
-      raised: 245000,
-      backers: 89,
-      daysLeft: 8,
-      milestoneVerified: true,
-      category: "Film & Video"
-    },
-    {
-      id: 3,
-      title: "Clean Water Initiative for Rural Communities",
-      creator: "WaterAid Nepal",
-      image: "clean water community",
-      goal: 750000,
-      raised: 520000,
-      backers: 234,
-      daysLeft: 20,
-      milestoneVerified: false,
-      category: "Social Cause"
-    },
-    {
-      id: 4,
-      title: "Eco-Friendly Packaging Startup",
-      creator: "GreenPack Nepal",
-      image: "eco friendly packaging",
-      goal: 400000,
-      raised: 158000,
-      backers: 67,
-      daysLeft: 25,
-      milestoneVerified: false,
-      category: "Business"
-    },
-    {
-      id: 5,
-      title: "Mobile App for Local Artisan Marketplace",
-      creator: "Kala Bazaar",
-      image: "artisan marketplace mobile",
-      goal: 600000,
-      raised: 480000,
-      backers: 145,
-      daysLeft: 15,
-      milestoneVerified: true,
-      category: "Technology"
-    },
-    {
-      id: 6,
-      title: "Youth Coding Bootcamp in Kathmandu",
-      creator: "Code Nepal",
-      image: "coding bootcamp education",
-      goal: 350000,
-      raised: 295000,
-      backers: 112,
-      daysLeft: 10,
-      milestoneVerified: false,
-      category: "Education"
-    }
-  ];
+  const trendingProjects = browseCampaigns.slice(0, 6);
 
   return (
     <div className="min-h-screen bg-slate-50/50">

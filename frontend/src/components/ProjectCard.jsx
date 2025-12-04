@@ -5,12 +5,15 @@ import { Card, Button, Badge, Progress } from './ui';
 
 export function ProjectCard({ project }) {
   const percent = Math.min(100, Math.round((project.raised / project.goal) * 100));
+  const imageUrl = project.image.startsWith('http') 
+    ? project.image 
+    : `https://source.unsplash.com/random/800x600/?${project.image}`;
 
   return (
     <Card className="overflow-hidden flex flex-col h-full hover:shadow-lg transition-shadow duration-300">
       <div className="relative h-48 bg-slate-200">
         <img 
-          src={`https://source.unsplash.com/random/800x600/?${project.image}`} 
+          src={imageUrl} 
           alt={project.title}
           className="w-full h-full object-cover"
         />

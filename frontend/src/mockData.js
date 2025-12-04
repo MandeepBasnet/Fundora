@@ -144,6 +144,7 @@ export const browseCampaigns = [
   {
     id: 1,
     title: "Smart Agriculture IoT System for Nepali Farmers",
+    creator: "TechFarm Nepal",
     category: "Technology",
     description: "A revolutionary project to change the way we think about sustainable farming in Nepal.",
     image: "https://images.unsplash.com/photo-1581092335878-2d9ff86ca2bf?auto=format&fit=crop&q=80&w=600",
@@ -157,6 +158,7 @@ export const browseCampaigns = [
   {
     id: 2,
     title: "Documentary: Preserving Traditional Nepali Art Forms",
+    creator: "Heritage Filmmakers",
     category: "Film & Video",
     description: "Capturing the beauty of traditional Nepali art before it disappears.",
     image: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&q=80&w=600",
@@ -170,6 +172,7 @@ export const browseCampaigns = [
   {
     id: 3,
     title: "Clean Water Initiative for Rural Communities",
+    creator: "WaterAid Nepal",
     category: "Social Cause",
     description: "Bringing clean drinking water to 10 remote villages in Nepal.",
     image: "https://images.unsplash.com/photo-1538300342682-cf57afb97285?auto=format&fit=crop&q=80&w=600",
@@ -183,6 +186,7 @@ export const browseCampaigns = [
   {
     id: 4,
     title: "Eco-Friendly Packaging Startup",
+    creator: "GreenPack Nepal",
     category: "Business",
     description: "Replacing plastic packaging with biodegradable alternatives made in Nepal.",
     image: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&q=80&w=600",
@@ -196,6 +200,7 @@ export const browseCampaigns = [
   {
     id: 5,
     title: "Mobile App for Local Artisan Marketplace",
+    creator: "Kala Bazaar",
     category: "Technology",
     description: "Connecting local artisans directly with customers through a mobile platform.",
     image: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&q=80&w=600",
@@ -209,6 +214,7 @@ export const browseCampaigns = [
   {
     id: 6,
     title: "Youth Coding Bootcamp in Kathmandu",
+    creator: "Code Nepal",
     category: "Education",
     description: "Teaching programming skills to underprivileged youth in Kathmandu.",
     image: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=600",
@@ -222,6 +228,7 @@ export const browseCampaigns = [
   {
     id: 7,
     title: "Mountain Trail Conservation Project",
+    creator: "Annapurna Conservation Area Project",
     category: "Environment",
     description: "Preserve and maintain hiking trails in the Annapurna region.",
     image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&q=80&w=600",
@@ -235,6 +242,7 @@ export const browseCampaigns = [
   {
     id: 8,
     title: "Women's Handicraft Cooperative",
+    creator: "Women Skills Development",
     category: "Social Cause",
     description: "Empowering rural women through traditional handicraft production.",
     image: "https://images.unsplash.com/photo-1526047932273-341f2a7631f9?auto=format&fit=crop&q=80&w=600",
@@ -248,6 +256,7 @@ export const browseCampaigns = [
   {
     id: 9,
     title: "Solar-Powered School Lighting",
+    creator: "SunFarmer Nepal",
     category: "Technology",
     description: "Installing solar panels in schools without electricity access.",
     image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&q=80&w=600",
@@ -261,6 +270,7 @@ export const browseCampaigns = [
   {
     id: 10,
     title: "Organic Coffee Farm Development",
+    creator: "Gulmi Coffee Cooperative",
     category: "Agriculture",
     description: "Establishing an organic coffee farm in Gulmi district.",
     image: "https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&q=80&w=600",
@@ -274,6 +284,7 @@ export const browseCampaigns = [
   {
     id: 11,
     title: "Digital Library for Remote Areas",
+    creator: "E-Pustakalaya",
     category: "Education",
     description: "Creating digital learning centers with e-books and online courses.",
     image: "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&q=80&w=600",
@@ -287,6 +298,7 @@ export const browseCampaigns = [
   {
     id: 12,
     title: "Traditional Music Album Production",
+    creator: "Folk Music Nepal",
     category: "Music",
     description: "Recording and preserving traditional Nepali folk music.",
     image: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&q=80&w=600",
@@ -300,6 +312,7 @@ export const browseCampaigns = [
   {
     id: 13,
     title: "Bee Keeping & Honey Production Initiative",
+    creator: "Himalayan Honey",
     category: "Agriculture",
     description: "Training farmers in modern beekeeping techniques.",
     image: "https://images.unsplash.com/photo-1558642084-fd07fae5282e?auto=format&fit=crop&q=80&w=600",
@@ -313,6 +326,7 @@ export const browseCampaigns = [
   {
     id: 14,
     title: "Adventure Tourism Gear Rental Platform",
+    creator: "Nepal Trekking Gear",
     category: "Business",
     description: "Online platform for renting trekking and climbing equipment.",
     image: "https://images.unsplash.com/photo-1551632811-561732d1e306?auto=format&fit=crop&q=80&w=600",
@@ -326,6 +340,7 @@ export const browseCampaigns = [
   {
     id: 15,
     title: "Mental Health Awareness Campaign",
+    creator: "Koshish Nepal",
     category: "Health",
     description: "Breaking stigma and providing mental health resources in Nepal.",
     image: "https://images.unsplash.com/photo-1527689368864-3a821dbccc34?auto=format&fit=crop&q=80&w=600",
@@ -339,6 +354,7 @@ export const browseCampaigns = [
   {
     id: 16,
     title: "Earthquake-Resistant Building Workshops",
+    creator: "Build Change Nepal",
     category: "Education",
     description: "Teaching construction workers earthquake-safe building techniques.",
     image: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&q=80&w=600",
@@ -352,6 +368,7 @@ export const browseCampaigns = [
   {
     id: 17,
     title: "Heritage Building Restoration Fund",
+    creator: "Kathmandu Valley Preservation Trust",
     category: "Culture",
     description: "Restoring historic temples and monuments in Patan Durbar Square.",
     image: "https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&q=80&w=600",
@@ -365,6 +382,7 @@ export const browseCampaigns = [
   {
     id: 18,
     title: "Mobile Veterinary Clinic for Rural Areas",
+    creator: "Himalayan Animal Rescue",
     category: "Health",
     description: "Providing affordable veterinary care to livestock in remote villages.",
     image: "https://images.unsplash.com/photo-1548681528-6a5c45b66b42?auto=format&fit=crop&q=80&w=600",
