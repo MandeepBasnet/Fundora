@@ -7,15 +7,23 @@ import { Button, Card, Badge, Progress, Tabs, TabsList, TabsTrigger, TabsContent
 import { ImageWithFallback } from '../components/ImageWithFallback';
 import { MilestoneTimeline } from '../components/MilestoneTimeline';
 import { RewardTier } from '../components/RewardTier';
-import { campaignData } from '../mockData';
+import { campaignData, browseCampaigns } from '../mockData';
 
 export function CampaignDetail() {
+  const { id } = useParams();
   const [selectedReward, setSelectedReward] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('esewa');
   
-  const percentageFunded = Math.round((campaignData.raised / campaignData.goal) * 100);
+  // Find the campaign from browseCampaigns if id exists, otherwise fallback to default campaignData
+  const foundCampaign = id ? browseCampaigns.find(c => c.id === parseInt(id)) : campaignData;
+  
+  // Merge found campaign with default data structure to ensure all fields (milestones, rewards etc) exist
+  // This is needed because browseCampaigns only has summary data
+  const campaign = { ...campaignData, ...foundCampaign };
+
+  const percentageFunded = Math.round((campaign.raised / campaign.goal) * 100);
 
   const handleBackProject = () => {
     setShowPaymentModal(true);
@@ -26,8 +34,8 @@ export function CampaignDetail() {
       {/* 1. Header Section: Title & Blurb (Kickstarter Style: Top Center) */}
       <div className="bg-white pt-8 md:pt-12 pb-8 border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-10">
-          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4 tracking-tight">{campaignData.title}</h1>
-          <p className="text-xl text-slate-500 max-w-3xl mx-auto leading-relaxed">{campaignData.description || "A revolutionary way to help local farmers using smart technology to increase yields and sustainability."}</p>
+          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4 tracking-tight">{campaign.title}</h1>
+          <p className="text-xl text-slate-500 max-w-3xl mx-auto leading-relaxed">{campaign.description || "A revolutionary way to help local farmers using smart technology to increase yields and sustainability."}</p>
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -36,15 +44,15 @@ export function CampaignDetail() {
             <div className="lg:col-span-8 space-y-4">
                <div className="aspect-video bg-black rounded-xl overflow-hidden relative group shadow-md">
                 <ImageWithFallback 
-                  src={campaignData.image}
-                  alt={campaignData.title}
+                  src={campaign.image}
+                  alt={campaign.title}
                   className="w-full h-full object-cover opacity-90"
                 />
               </div>
               <div className="flex items-center gap-2 text-sm text-slate-500 border-b border-slate-100 pb-4">
-                 <MapPin className="w-4 h-4" /> {campaignData.location}
+                 <MapPin className="w-4 h-4" /> {campaign.location}
                  <span className="mx-2">•</span>
-                 <span className="font-medium text-slate-900">{campaignData.category}</span>
+                 <span className="font-medium text-slate-900">{campaign.category}</span>
               </div>
             </div>
 
@@ -66,17 +74,17 @@ export function CampaignDetail() {
                 </div>
 
                 <div className="space-y-1">
-                  <span className="block text-3xl font-bold text-slate-900">Rs. {campaignData.raised.toLocaleString()}</span>
-                  <span className="block text-slate-500 text-sm">pledged of Rs. {campaignData.goal.toLocaleString()} goal</span>
+                  <span className="block text-3xl font-bold text-slate-900">Rs. {campaign.raised.toLocaleString()}</span>
+                  <span className="block text-slate-500 text-sm">pledged of Rs. {campaign.goal.toLocaleString()} goal</span>
                 </div>
 
                 <div className="space-y-1">
-                  <span className="block text-3xl font-bold text-slate-900">{campaignData.backers}</span>
+                  <span className="block text-3xl font-bold text-slate-900">{campaign.backers}</span>
                   <span className="block text-slate-500 text-sm">backers</span>
                 </div>
 
                 <div className="space-y-1">
-                  <span className="block text-3xl font-bold text-slate-900">{campaignData.daysLeft}</span>
+                  <span className="block text-3xl font-bold text-slate-900">{campaign.daysLeft}</span>
                   <span className="block text-slate-500 text-sm">days to go</span>
                 </div>
               </div>
@@ -132,7 +140,7 @@ export function CampaignDetail() {
                 <TabsContent value="story" className="mt-0 animate-in fade-in-50">
                   <div className="prose prose-slate max-w-none prose-headings:font-bold prose-p:text-slate-600 prose-img:rounded-xl">
                     <h3 className="text-2xl mb-4">About the Project</h3>
-                    <p className="text-lg leading-relaxed mb-6">{campaignData.story}</p>
+                    <p className="text-lg leading-relaxed mb-6">{campaign.story}</p>
                     
                     <div className="my-10 p-6 bg-slate-50 rounded-xl border border-slate-100 flex gap-4">
                       <ShieldCheck className="w-10 h-10 text-sky-600 shrink-0" />
@@ -172,7 +180,7 @@ export function CampaignDetail() {
                       </div>
                     </Card>
 
-                    <MilestoneTimeline milestones={campaignData.milestones} />
+                    <MilestoneTimeline milestones={campaign.milestones} />
                   </div>
                 </TabsContent>
 
@@ -233,7 +241,7 @@ export function CampaignDetail() {
                   <div className="flex items-center gap-4 mb-4">
                     <Avatar className="h-16 w-16" fallback="TF" />
                     <div>
-                      <div className="font-bold text-lg text-slate-900">{campaignData.creator}</div>
+                      <div className="font-bold text-lg text-slate-900">{campaign.creator}</div>
                       <div className="text-sm text-slate-500">3 Campaigns • Chitwan, Nepal</div>
                     </div>
                   </div>
@@ -255,7 +263,7 @@ export function CampaignDetail() {
                 <div>
                   <h4 className="font-bold text-slate-900 mb-6">Support</h4>
                   <div className="space-y-6">
-                    {campaignData.rewards.map((reward) => (
+                    {campaign.rewards.map((reward) => (
                       <RewardTier 
                         key={reward.id} 
                         reward={reward}
@@ -319,7 +327,7 @@ export function CampaignDetail() {
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">Rs.</span>
                   <Input 
                     type="number" 
-                    defaultValue={selectedReward ? campaignData.rewards.find(r => r.id === selectedReward)?.amount : 100} 
+                    defaultValue={selectedReward ? campaign.rewards.find(r => r.id === selectedReward)?.amount : 100} 
                     className="pl-10 text-lg font-bold"
                   />
                 </div>
