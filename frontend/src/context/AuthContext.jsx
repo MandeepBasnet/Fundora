@@ -25,7 +25,11 @@ export const AuthProvider = ({ children }) => {
           const res = await axios.get('http://localhost:5000/api/users/me');
           setUser(res.data);
         } catch (error) {
-          console.error("Error loading user", error);
+          // Only log full error if it's NOT a 401 (Unauthorized)
+          if (error.response?.status !== 401) {
+            console.error("Error loading user", error);
+          }
+          
           localStorage.removeItem('token');
           setToken(null);
           setUser(null);
