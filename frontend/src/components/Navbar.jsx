@@ -1,15 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Menu, X, Bell, User } from 'lucide-react';
+import { Search, Menu, X, Bell, User, LogOut, LayoutDashboard } from 'lucide-react';
 import { Button, Input } from './ui';
 import { FundoraLogo } from './FundoraLogo';
 import { NotificationDropdown } from './NotificationDropdown';
+import { useAuth } from '../context/AuthContext';
 
 export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const notifRef = useRef(null);
+  const profileRef = useRef(null);
   const navigate = useNavigate();
+  const { user: authUser, logout } = useAuth();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -17,12 +21,15 @@ export function Navbar() {
       if (notifRef.current && !notifRef.current.contains(event.target)) {
         setIsNotifOpen(false);
       }
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [notifRef]);
+  }, [notifRef, profileRef]);
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -47,7 +54,7 @@ export function Navbar() {
 
           {/* Navigation Links */}
           <div className="flex items-center gap-4">
-            <Link to="/" className="hidden md:block text-sm font-medium text-gray-700 hover:text-sky-600 transition-colors">
+            <Link to="/campaigns" className="hidden md:block text-sm font-medium text-gray-700 hover:text-sky-600 transition-colors">
               Explore
             </Link>
             <Link to="/dashboard" className="hidden md:block text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">
@@ -65,9 +72,61 @@ export function Navbar() {
               <NotificationDropdown isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} />
             </div>
 
-            <Link to="/login" className="hidden sm:flex p-2 text-gray-700 hover:text-blue-600 transition-colors">
-              <User className="w-5 h-5" />
-            </Link>
+            {/* Auth Dropdown */}
+            {authUser ? (
+              <div className="relative" ref={profileRef}>
+                <button 
+                  className="flex items-center gap-2 p-2 text-gray-700 hover:text-blue-600 transition-colors"
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                >
+                  <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 font-semibold">
+                    {authUser.name ? authUser.name.charAt(0).toUpperCase() : <User className="w-5 h-5" />}
+                  </div>
+                </button>
+
+                {isProfileOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-xl z-50 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="p-4 border-b border-gray-100">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{authUser.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{authUser.email}</p>
+                    </div>
+                    <div className="py-1">
+                      <Link 
+                        to="/dashboard" 
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-slate-50 hover:text-sky-600"
+                        onClick={() => setIsProfileOpen(false)}
+                      >
+                        <LayoutDashboard className="w-4 h-4" />
+                        Dashboard
+                      </Link>
+                      <Link 
+                        to="/profile" 
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-slate-50 hover:text-sky-600"
+                        onClick={() => setIsProfileOpen(false)}
+                      >
+                        <User className="w-4 h-4" />
+                        Profile
+                      </Link>
+                      <button 
+                        onClick={() => {
+                          logout();
+                          setIsProfileOpen(false);
+                          navigate('/');
+                        }}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link to="/login" className="hidden sm:flex p-2 text-gray-700 hover:text-blue-600 transition-colors">
+                <User className="w-5 h-5" />
+              </Link>
+            )}
 
             <Button className="bg-sky-600 hover:bg-sky-700 text-white" onClick={() => navigate('/start-campaign')}>
               Start a Campaign

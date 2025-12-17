@@ -50,7 +50,7 @@ export function SignupPage() {
     const result = await register(userData);
 
     if (result.success) {
-      navigate(userType === 'creator' ? '/creator' : '/dashboard');
+      navigate('/'); // Redirect to home page
     } else {
       setError(result.message);
     }

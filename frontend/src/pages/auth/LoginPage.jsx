@@ -23,7 +23,7 @@ export function LoginPage() {
     const result = await login(email, password);
     
     if (result.success) {
-      navigate('/dashboard'); // or redirect based on role
+      navigate('/'); // Redirect to home page
     } else {
       setError(result.message);
     }
