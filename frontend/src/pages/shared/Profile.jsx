@@ -30,7 +30,7 @@ export function Profile() {
       await updateProfile(data);
       setMsg({ type: 'success', content: 'Profile updated successfully' });
     } catch (err) {
-      setMsg({ type: 'error', content: err });
+      setMsg({ type: 'error', content: err.message || 'Failed to update profile' });
     } finally {
       setLoading(false);
     }
@@ -48,7 +48,7 @@ export function Profile() {
       setMsg({ type: 'success', content: 'Password changed successfully' });
       setPasswords({ current: '', new: '', confirm: '' });
     } catch (err) {
-      setMsg({ type: 'error', content: err });
+      setMsg({ type: 'error', content: err.message || 'Failed to change password' });
     } finally {
       setLoading(false);
     }

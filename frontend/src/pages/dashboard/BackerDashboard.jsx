@@ -33,9 +33,9 @@ export function BackerDashboard() {
         </Card>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
+      <div className="grid lg:grid-cols-1 gap-8">
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="space-y-8">
           {/* Active Campaigns */}
           <Card className="p-6 border-slate-200">
             <h3 className="font-bold text-lg text-slate-900 mb-6">Active Campaigns</h3>
@@ -60,7 +60,7 @@ export function BackerDashboard() {
                 </div>
               ))}
             </div>
-            <Link to="/backer/supported">
+            <Link to="/dashboard/supported">
               <Button variant="outline" className="w-full mt-6">View All Supported Projects</Button>
             </Link>
           </Card>
@@ -80,33 +80,13 @@ export function BackerDashboard() {
               ))}
             </div>
           </Card>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Quick Actions */}
+          
+          {/* Recent Activity moved below or removed if redundant with Transactions page */}
           <Card className="p-6 border-slate-200">
-            <h3 className="font-bold text-lg text-slate-900 mb-4">Quick Actions</h3>
-            <div className="space-y-2">
-              <Button variant="outline" className="w-full justify-start">
-                <Clock className="w-4 h-4 mr-2" /> Transaction History
-              </Button>
-              <Link to="/backer/messages">
-                <Button variant="outline" className="w-full justify-start">
-                  <MessageSquare className="w-4 h-4 mr-2" /> Message Creators
-                </Button>
-              </Link>
-              <Link to="/campaigns">
-                <Button className="w-full justify-start bg-sky-600 hover:bg-blue-700 text-white">
-                  <ExternalLink className="w-4 h-4 mr-2" /> Browse Campaigns
-                </Button>
-              </Link>
-            </div>
-          </Card>
-
-          {/* Recent Transactions */}
-          <Card className="p-6 border-slate-200">
-            <h3 className="font-bold text-lg text-slate-900 mb-4">Recent Activity</h3>
+             <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-lg text-slate-900">Recent Activity</h3>
+                <Link to="/dashboard/transactions" className="text-sm text-sky-600 hover:underline">View All</Link>
+             </div>
             <div className="space-y-4">
               {backerData.recentTransactions.map((txn) => (
                 <div key={txn.id} className="flex items-start gap-3">
