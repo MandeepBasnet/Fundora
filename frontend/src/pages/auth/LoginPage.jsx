@@ -1,121 +1,107 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Button, Input, Card } from '../../components/ui';
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { Button, Card, Input } from '../../components/ui';
 import { FundoraLogo } from '../../components/FundoraLogo';
-import { Mail, Lock, AlertCircle } from 'lucide-react';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
-
-    const res = await login(email, password);
-    
-    if (res.success) {
-      if (res.user?.role === 'creator') {
-         navigate('/creator');
-      } else {
-         navigate('/dashboard');
-      }
-    } else {
-      setError(res.message);
+    try {
+      await login(email, password);
+      navigate('/dashboard'); // or redirect based on role
+    } catch (err) {
+      setError(err);
     }
-    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="max-w-md w-full space-y-8 p-8 border-slate-200 shadow-lg">
-        <div className="text-center">
-          <div className="flex justify-center mb-6">
-            <FundoraLogo className="h-10" />
-          </div>
-          <h2 className="text-3xl font-bold text-slate-900">Welcome back</h2>
-          <p className="mt-2 text-sm text-slate-600">
-            Don't have an account?{' '}
-            <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500">
-              Sign up
-            </Link>
-          </p>
-        </div>
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-12 relative overflow-hidden">
+      <div className="absolute inset-0 opacity-5 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:16px_16px]"></div>
+      
+      <div className="w-full max-w-md relative z-10">
+        <Link to="/" className="inline-flex items-center gap-2 text-slate-600 hover:text-sky-600 mb-8 transition-colors font-medium">
+          <ArrowLeft className="w-4 h-4" /> Back to Home
+        </Link>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-50 text-red-700 p-3 rounded-lg flex items-center gap-2 text-sm">
-              <AlertCircle className="w-4 h-4" /> {error}
+        <Card className="p-6 md:p-8 shadow-xl border-slate-200 bg-white">
+          <div className="text-center mb-8">
+            <div className="inline-flex justify-center mb-4">
+              <FundoraLogo />
             </div>
-          )}
-
-          <div className="space-y-4 rounded-md shadow-sm">
-            <div>
-              <label className="text-sm font-medium text-slate-700">Email address</label>
-              <div className="mt-1 relative">
-                <Input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  placeholder="you@example.com"
-                />
-                <Mail className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-slate-700">Password</label>
-              <div className="mt-1 relative">
-                <Input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
-                  placeholder="••••••••"
-                />
-                <Lock className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              </div>
-            </div>
+            <h1 className="text-2xl font-bold text-slate-900">Welcome Back</h1>
+            <p className="text-slate-500 mt-2">Sign in to continue to your dashboard</p>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          <form className="space-y-5" onSubmit={handleSubmit}>
+            {error && <div className="text-red-500 text-sm text-center">{error}</div>}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">Email Address</label>
+              <Input 
+                type="email" 
+                placeholder="name@company.com" 
+                className="h-11"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
               />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-900">
-                Remember me
-              </label>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Password</label>
+                <div className="relative">
+                  <Input 
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password" 
+                    className="h-11 pr-10"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="remember" className="h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-blue-500" />
+                  <label htmlFor="remember" className="text-sm text-slate-600">Remember me</label>
+                </div>
+                <Link to="/forgot-password" className="text-sm text-sky-600 hover:underline font-medium">Forgot password?</Link>
+              </div>
             </div>
 
-            <div className="text-sm">
-              <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
-                Forgot password?
+            <Button type="submit" className="w-full h-11 text-base bg-sky-600 hover:bg-sky-700 shadow-lg shadow-blue-200">
+              Sign In
+            </Button>
+          </form>
+
+          <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+            <p className="text-sm text-slate-500">
+              Don't have an account?{' '}
+              <Link to="/signup" className="text-sky-600 font-bold hover:underline">
+                Sign up for free
               </Link>
-            </div>
+            </p>
           </div>
-
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            {loading ? 'Signing in...' : 'Sign in'}
-          </Button>
-        </form>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

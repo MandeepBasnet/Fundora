@@ -1,84 +1,51 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { Button, Input, Card } from '../../components/ui';
+import { ArrowLeft, Mail } from 'lucide-react';
+import { Button, Card, Input } from '../../components/ui';
 import { FundoraLogo } from '../../components/FundoraLogo';
-import { Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
 
 export function ForgotPassword() {
-  const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setSubmitted(true);
-    setLoading(false);
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="max-w-md w-full space-y-8 p-8 border-slate-200 shadow-lg">
-        <div className="text-center">
-          <div className="flex justify-center mb-6">
-            <FundoraLogo className="h-10" />
-          </div>
-          <h2 className="text-3xl font-bold text-slate-900">Reset password</h2>
-          <p className="mt-2 text-sm text-slate-600">
-            Enter your email address and we'll send you a link to reset your password.
-          </p>
-        </div>
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-12 relative overflow-hidden">
+      <div className="absolute inset-0 opacity-5 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:16px_16px]"></div>
+      
+      <div className="w-full max-w-md relative z-10">
+        <Link to="/login" className="inline-flex items-center gap-2 text-slate-600 hover:text-blue-600 mb-8 transition-colors font-medium">
+          <ArrowLeft className="w-4 h-4" /> Back to Login
+        </Link>
 
-        {submitted ? (
-          <div className="text-center space-y-6">
-            <div className="bg-green-50 text-green-700 p-4 rounded-lg flex flex-col items-center gap-2">
-              <CheckCircle2 className="w-8 h-8" />
-              <p className="font-medium">Check your email</p>
-              <p className="text-sm">We've sent password reset instructions to {email}</p>
-            </div>
-            <Link to="/login">
-              <Button variant="outline" className="w-full">
-                Return to login
-              </Button>
-            </Link>
-          </div>
-        ) : (
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-            <div className="space-y-4 rounded-md shadow-sm">
-              <div>
-                <label className="text-sm font-medium text-slate-700">Email address</label>
-                <div className="mt-1 relative">
-                  <Input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
-                    placeholder="you@example.com"
-                  />
-                  <Mail className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                </div>
+        <Card className="p-6 md:p-8 shadow-xl border-slate-200 bg-white">
+          <div className="text-center mb-8">
+            <div className="inline-flex justify-center mb-4">
+              <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                <Mail className="w-6 h-6" />
               </div>
             </div>
+            <h1 className="text-2xl font-bold text-slate-900">Forgot Password?</h1>
+            <p className="text-slate-500 mt-2">No worries, we'll send you reset instructions.</p>
+          </div>
 
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              {loading ? 'Sending link...' : 'Send Reset Link'}
-            </Button>
-
-            <div className="text-center">
-              <Link to="/login" className="font-medium text-sm text-slate-600 hover:text-slate-900 flex items-center justify-center gap-2">
-                <ArrowLeft className="w-4 h-4" /> Back to login
-              </Link>
+          <form className="space-y-5">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">Email Address</label>
+              <Input type="email" placeholder="name@company.com" className="h-11" />
             </div>
+
+            <Button className="w-full h-11 text-base bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200">
+              Reset Password
+            </Button>
           </form>
-        )}
-      </Card>
+
+          <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+            <p className="text-sm text-slate-500">
+              Remember your password?{' '}
+              <Link to="/login" className="text-blue-600 font-bold hover:underline">
+                Log in
+              </Link>
+            </p>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
