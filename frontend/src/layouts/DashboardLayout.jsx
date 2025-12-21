@@ -2,7 +2,6 @@ import React from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { LayoutDashboard, Heart, MessageSquare, Settings, LogOut, History, Compass } from 'lucide-react';
 import { Button } from '../components/ui';
-import { FundoraLogo } from '../components/FundoraLogo';
 
 export function DashboardLayout() {
   const location = useLocation();
@@ -24,11 +23,7 @@ export function DashboardLayout() {
     <div className="flex min-h-screen bg-slate-50">
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-slate-200 hidden lg:flex lg:flex-col shrink-0">
-        <div className="p-6 border-b border-slate-100">
-          <Link to="/" className="flex items-center">
-            <FundoraLogo />
-          </Link>
-        </div>
+
         <nav className="p-4 space-y-1 flex-1">
           <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
           <NavItem to="/dashboard/supported" icon={Heart} label="Supported Projects" />
