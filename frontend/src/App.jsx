@@ -9,6 +9,8 @@ import { BrowseCampaigns } from './pages/campaigns/BrowseCampaigns'
 import { CampaignDetail } from './pages/CampaignDetail'
 import { AuthProvider } from './context/AuthContext'
 
+import { StartCampaign } from './pages/campaigns/StartCampaign'
+
 import { BackerDashboard } from './pages/backer/BackerDashboard'
 import { SupportedProjects } from './pages/backer/SupportedProjects'
 import { Overview } from './pages/creator/Overview'
@@ -34,6 +36,7 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/campaigns" element={<BrowseCampaigns />} />
           <Route path="/campaigns/:id" element={<CampaignDetail />} />
+          <Route path="/start-campaign" element={<StartCampaign />} />
           
           {/* Backer Routes */}
           <Route path="/dashboard" element={<DashboardLayout />}>
