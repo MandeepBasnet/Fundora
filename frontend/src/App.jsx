@@ -9,12 +9,18 @@ import { BrowseCampaigns } from './pages/campaigns/BrowseCampaigns'
 import { CampaignDetail } from './pages/CampaignDetail'
 import { AuthProvider } from './context/AuthContext'
 
-import { BackerDashboard } from './pages/dashboard/BackerDashboard'
-import { SupportedProjects } from './pages/dashboard/SupportedProjects'
+import { BackerDashboard } from './pages/backer/BackerDashboard'
+import { SupportedProjects } from './pages/backer/SupportedProjects'
+import { Overview } from './pages/creator/Overview'
+import { MyCampaigns } from './pages/creator/MyCampaigns'
+import { Finances } from './pages/creator/Finances'
+
 import { Messages } from './pages/shared/Messages'
 import { Transactions } from './pages/shared/Transactions'
 import { Profile } from './pages/shared/Profile'
-import { DashboardLayout } from './components/layouts/DashboardLayout'
+
+import { DashboardLayout } from './layouts/DashboardLayout'
+import { CreatorLayout } from './layouts/CreatorLayout'
 
 function App() {
   return (
@@ -29,15 +35,26 @@ function App() {
           <Route path="/campaigns" element={<BrowseCampaigns />} />
           <Route path="/campaigns/:id" element={<CampaignDetail />} />
           
-          {/* Dashboard Routes with Layout */}
+          {/* Backer Routes */}
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<BackerDashboard />} />
             <Route path="supported" element={<SupportedProjects />} />
             <Route path="messages" element={<Messages />} />
             <Route path="transactions" element={<Transactions />} />
+            <Route path="profile" element={<Profile />} />
           </Route>
           
-          {/* Shared Routes */}
+          {/* Creator Routes */}
+          <Route path="/creator" element={<CreatorLayout />}>
+            <Route index element={<Overview />} />
+            <Route path="campaigns" element={<MyCampaigns />} />
+            <Route path="finances" element={<Finances />} />
+            <Route path="messages" element={<Messages />} />
+            <Route path="transactions" element={<Transactions />} />
+            <Route path="profile" element={<Profile />} />
+          </Route>
+          
+          {/* Standalone Shared Routes */}
           <Route path="/profile" element={<Profile />} />
         </Routes>
       </AuthProvider>
