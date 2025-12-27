@@ -25,21 +25,25 @@ export function SignupPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    try {
-      await register(
-        `${formData.firstName} ${formData.lastName}`,
-        formData.email,
-        formData.password,
-        userType
-      );
-      // Redirect based on role
-      if (userType === 'creator') {
-         navigate('/creator');
-      } else {
-         navigate('/dashboard');
-      }
-    } catch (err) {
-      setError(err);
+    
+    const result = await register({
+      name: `${formData.firstName} ${formData.lastName}`,
+      email: formData.email,
+      password: formData.password,
+      role: userType
+    });
+    
+    if (result.success) {
+      // Redirect to OTP verification page with email and role
+      navigate('/verify-otp', { 
+        state: { 
+          email: formData.email, 
+          name: formData.firstName,
+          role: userType
+        } 
+      });
+    } else {
+      setError(result.message || 'Registration failed');
     }
   };
 

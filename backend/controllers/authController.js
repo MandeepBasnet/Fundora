@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const { generateOTP, sendOTPEmail } = require('../utils/emailService');
 
 // Generate Access Token
 const generateAccessToken = (id) => {
@@ -29,27 +30,40 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
+    // Generate OTP
+    const otp = generateOTP();
+    const expiryMinutes = parseInt(process.env.OTP_EXPIRY_MINUTES) || 10;
+    const otpExpiry = new Date(Date.now() + expiryMinutes * 60 * 1000);
+
     const user = await User.create({
       name,
       email,
       password,
-      role
+      role,
+      isVerified: false,
+      otp: {
+        code: otp,
+        expiresAt: otpExpiry
+      }
     });
 
     if (user) {
-      const accessToken = generateAccessToken(user._id);
-      const refreshToken = generateRefreshToken(user._id);
+      // Send OTP email
+      try {
+        await sendOTPEmail(email, otp, name);
+      } catch (emailError) {
+        console.error('Failed to send OTP email:', emailError);
+        // Don't fail registration, user can request resend
+      }
 
-      user.refreshToken = [refreshToken];
-      await user.save();
-
+      // Don't return tokens - user needs to verify OTP first
       res.status(201).json({
         _id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
-        token: accessToken,
-        refreshToken
+        isVerified: false,
+        message: 'Registration successful. Please verify your email with the OTP sent.'
       });
     } else {
       res.status(400).json({ message: 'Invalid user data' });

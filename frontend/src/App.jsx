@@ -5,6 +5,9 @@ import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/auth/LoginPage'
 import { SignupPage } from './pages/auth/SignupPage'
 import { ForgotPassword } from './pages/auth/ForgotPasswordPage'
+import { OTPVerificationPage } from './pages/auth/OTPVerificationPage'
+import { ResetPasswordOTPPage } from './pages/auth/ResetPasswordOTPPage'
+import { NewPasswordPage } from './pages/auth/NewPasswordPage'
 import { BrowseCampaigns } from './pages/campaigns/BrowseCampaigns'
 import { CampaignDetail } from './pages/CampaignDetail'
 import { AuthProvider } from './context/AuthContext'
@@ -51,6 +54,9 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-otp" element={<OTPVerificationPage />} />
+          <Route path="/reset-password-otp" element={<ResetPasswordOTPPage />} />
+          <Route path="/new-password" element={<NewPasswordPage />} />
           <Route path="/campaigns" element={<BrowseCampaigns />} />
           <Route path="/campaigns/:id" element={<CampaignDetail />} />
           <Route path="/start-campaign" element={<StartCampaign />} />

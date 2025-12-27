@@ -71,10 +71,13 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await axios.post('http://localhost:5000/api/auth/register', userData);
       
-      localStorage.setItem('token', res.data.token);
-      setToken(res.data.token);
-      setUser(res.data);
-      return { success: true };
+      // Don't auto-login - user needs to verify OTP first
+      // Return success with user email for OTP verification
+      return { 
+        success: true, 
+        email: res.data.email,
+        requiresVerification: true 
+      };
     } catch (error) {
        return {
         success: false,
@@ -119,6 +122,14 @@ export const AuthProvider = ({ children }) => {
       }
   };
 
+  // Helper function to set user and token (used for OTP auto-login)
+  const setUserAndToken = (userData, newToken) => {
+    localStorage.setItem('token', newToken);
+    axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+    setToken(newToken);
+    setUser(userData);
+  };
+
   const value = {
     user,
     token,
@@ -127,7 +138,8 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateProfile,
-    changePassword
+    changePassword,
+    setUserAndToken
   };
 
   return (
