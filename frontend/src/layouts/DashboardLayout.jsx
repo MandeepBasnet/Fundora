@@ -1,12 +1,21 @@
 import React from 'react';
-import { Link, useLocation, Outlet } from 'react-router-dom';
+import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Heart, MessageSquare, Settings, LogOut, History, Compass } from 'lucide-react';
 import { Button } from '../components/ui';
+import { FundoraLogo } from '../components/FundoraLogo';
+import { useAuth } from '../context/AuthContext';
 
 export function DashboardLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
   
   const isActive = (path) => location.pathname === path;
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   const NavItem = ({ to, icon: Icon, label }) => (
     <Link to={to}>
@@ -23,7 +32,11 @@ export function DashboardLayout() {
     <div className="flex min-h-screen bg-slate-50">
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-slate-200 hidden lg:flex lg:flex-col shrink-0">
-
+        <div className="p-6 border-b border-slate-100">
+          <Link to="/" className="flex items-center">
+            <FundoraLogo />
+          </Link>
+        </div>
         <nav className="p-4 space-y-1 flex-1">
           <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
           <NavItem to="/dashboard/supported" icon={Heart} label="Supported Projects" />
@@ -33,7 +46,11 @@ export function DashboardLayout() {
           <NavItem to="/dashboard/profile" icon={Settings} label="Settings" />
         </nav>
         <div className="p-4 border-t border-slate-100">
-          <Button variant="ghost" className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50">
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+            onClick={handleLogout}
+          >
             <LogOut className="mr-3 h-5 w-5" /> Logout
           </Button>
         </div>
@@ -46,3 +63,4 @@ export function DashboardLayout() {
     </div>
   );
 }
+

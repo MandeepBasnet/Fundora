@@ -15,6 +15,14 @@ export function Navbar() {
   const navigate = useNavigate();
   const { user: authUser, logout } = useAuth();
 
+  // Get role-specific dashboard URL
+  const getDashboardUrl = () => {
+    if (!authUser) return '/dashboard';
+    if (authUser.role === 'admin') return '/admin';
+    if (authUser.role === 'creator') return '/creator';
+    return '/dashboard';
+  };
+
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
@@ -57,7 +65,7 @@ export function Navbar() {
             <Link to="/campaigns" className="hidden md:block text-sm font-medium text-gray-700 hover:text-sky-600 transition-colors">
               Explore
             </Link>
-            <Link to="/dashboard" className="hidden md:block text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">
+            <Link to={getDashboardUrl()} className="hidden md:block text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">
               Dashboard
             </Link>
             
@@ -92,7 +100,7 @@ export function Navbar() {
                     </div>
                     <div className="py-1">
                       <Link 
-                        to="/dashboard" 
+                        to={getDashboardUrl()} 
                         className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-slate-50 hover:text-sky-600"
                         onClick={() => setIsProfileOpen(false)}
                       >
@@ -145,7 +153,7 @@ export function Navbar() {
         <div className="md:hidden absolute top-16 left-0 right-0 bg-white border-b border-gray-200 shadow-xl animate-in slide-in-from-top-2 z-40">
           <div className="p-4 space-y-4">
             <Link to="/" className="block text-base font-medium text-slate-700 hover:text-sky-600 hover:bg-slate-50 p-3 rounded-lg transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Explore</Link>
-            <Link to="/dashboard" className="block text-base font-medium text-slate-700 hover:text-sky-600 hover:bg-slate-50 p-3 rounded-lg transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</Link>
+            <Link to={getDashboardUrl()} className="block text-base font-medium text-slate-700 hover:text-sky-600 hover:bg-slate-50 p-3 rounded-lg transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</Link>
             <Link to="/login" className="block text-base font-medium text-slate-700 hover:text-sky-600 hover:bg-slate-50 p-3 rounded-lg transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Login</Link>
             <div className="pt-2">
               <Input type="search" placeholder="Search campaigns..." className="w-full" />

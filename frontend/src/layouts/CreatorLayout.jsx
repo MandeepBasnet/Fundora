@@ -1,13 +1,21 @@
 import React from 'react';
-import { Link, useLocation, Outlet } from 'react-router-dom';
+import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Megaphone, Wallet, MessageSquare, Settings, LogOut, History } from 'lucide-react';
 import { Button } from '../components/ui';
 import { FundoraLogo } from '../components/FundoraLogo';
+import { useAuth } from '../context/AuthContext';
 
 export function CreatorLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
   
   const isActive = (path) => location.pathname === path;
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   const NavItem = ({ to, icon: Icon, label }) => (
     <Link to={to}>
@@ -38,7 +46,11 @@ export function CreatorLayout() {
           <NavItem to="/creator/profile" icon={Settings} label="Settings" />
         </nav>
         <div className="p-4 border-t border-slate-100">
-          <Button variant="ghost" className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50">
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+            onClick={handleLogout}
+          >
             <LogOut className="mr-3 h-5 w-5" /> Logout
           </Button>
         </div>
@@ -51,3 +63,4 @@ export function CreatorLayout() {
     </div>
   );
 }
+

@@ -43,15 +43,22 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      // Clear any existing token and auth state before new login
+      localStorage.removeItem('token');
+      delete axios.defaults.headers.common['Authorization'];
+      
       const res = await axios.post('http://localhost:5000/api/auth/login', {
         email,
         password
       });
 
+      // Store new token and update axios headers immediately
       localStorage.setItem('token', res.data.token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
       setToken(res.data.token);
       setUser(res.data); // data contains user info + tokens
-      return { success: true };
+      
+      return { success: true, user: res.data };
     } catch (error) {
       return {
         success: false,

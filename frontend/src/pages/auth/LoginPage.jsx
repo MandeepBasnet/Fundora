@@ -16,11 +16,22 @@ export function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    try {
-      await login(email, password);
-      navigate('/dashboard'); // or redirect based on role
-    } catch (err) {
-      setError(err);
+    
+    const result = await login(email, password);
+    
+    if (result.success) {
+      // Redirect based on user role
+      const userRole = result.user?.role;
+      
+      if (userRole === 'admin') {
+        navigate('/admin');
+      } else if (userRole === 'creator') {
+        navigate('/creator');
+      } else {
+        navigate('/dashboard');
+      }
+    } else {
+      setError(result.message || 'Login failed');
     }
   };
 
