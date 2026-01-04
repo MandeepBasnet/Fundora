@@ -1,4 +1,5 @@
 import React from 'react';
+import { Loader2 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
 const buttonVariants = (variant = "default", size = "default") => {
@@ -21,9 +22,17 @@ const buttonVariants = (variant = "default", size = "default") => {
 };
 
 export const Button = React.forwardRef(
-  ({ className, variant = "default", size = "default", asChild = false, ...props }, ref) => {
+  ({ className, variant = "default", size = "default", loading = false, children, disabled, asChild = false, ...props }, ref) => {
     return (
-      <button className={cn(buttonVariants(variant, size), className)} ref={ref} {...props} />
+      <button 
+        className={cn(buttonVariants(variant, size), className)} 
+        ref={ref} 
+        disabled={loading || disabled}
+        {...props}
+      >
+        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+        {children}
+      </button>
     );
   }
 );

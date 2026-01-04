@@ -15,6 +15,7 @@ export function SignupPage() {
     password: ''
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -25,25 +26,30 @@ export function SignupPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
     
-    const result = await register({
-      name: `${formData.firstName} ${formData.lastName}`,
-      email: formData.email,
-      password: formData.password,
-      role: userType
-    });
-    
-    if (result.success) {
-      // Redirect to OTP verification page with email and role
-      navigate('/verify-otp', { 
-        state: { 
-          email: formData.email, 
-          name: formData.firstName,
-          role: userType
-        } 
+    try {
+      const result = await register({
+        name: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        password: formData.password,
+        role: userType
       });
-    } else {
-      setError(result.message || 'Registration failed');
+      
+      if (result.success) {
+        // Redirect to OTP verification page with email and role
+        navigate('/verify-otp', { 
+          state: { 
+            email: formData.email, 
+            name: formData.firstName,
+            role: userType
+          } 
+        });
+      } else {
+        setError(result.message || 'Registration failed');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -176,8 +182,8 @@ export function SignupPage() {
               </label>
             </div>
 
-            <Button type="submit" className="w-full h-11 text-base bg-sky-600 hover:bg-sky-700 shadow-lg shadow-blue-200">
-              Create Account
+            <Button type="submit" loading={loading} className="w-full h-11 text-base bg-sky-600 hover:bg-sky-700 shadow-lg shadow-blue-200">
+              {loading ? 'Creating Account...' : 'Create Account'}
             </Button>
           </form>
 

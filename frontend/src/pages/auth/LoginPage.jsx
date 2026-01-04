@@ -10,28 +10,34 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
     
-    const result = await login(email, password);
-    
-    if (result.success) {
-      // Redirect based on user role
-      const userRole = result.user?.role;
+    try {
+      const result = await login(email, password);
       
-      if (userRole === 'admin') {
-        navigate('/admin');
-      } else if (userRole === 'creator') {
-        navigate('/creator');
+      if (result.success) {
+        // Redirect based on user role
+        const userRole = result.user?.role;
+        
+        if (userRole === 'admin') {
+          navigate('/admin');
+        } else if (userRole === 'creator') {
+          navigate('/creator');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
-        navigate('/dashboard');
+        setError(result.message || 'Login failed');
       }
-    } else {
-      setError(result.message || 'Login failed');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -98,8 +104,8 @@ export function LoginPage() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full h-11 text-base bg-sky-600 hover:bg-sky-700 shadow-lg shadow-blue-200">
-              Sign In
+            <Button type="submit" loading={loading} className="w-full h-11 text-base bg-sky-600 hover:bg-sky-700 shadow-lg shadow-blue-200">
+              {loading ? 'Signing In...' : 'Sign In'}
             </Button>
           </form>
 

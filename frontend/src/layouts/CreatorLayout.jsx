@@ -32,11 +32,6 @@ export function CreatorLayout() {
     <div className="flex min-h-screen bg-slate-50">
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-slate-200 hidden lg:flex lg:flex-col shrink-0">
-        <div className="p-6 border-b border-slate-100">
-          <Link to="/" className="flex items-center">
-            <FundoraLogo />
-          </Link>
-        </div>
         <nav className="p-4 space-y-1 flex-1">
           <NavItem to="/creator" icon={LayoutDashboard} label="Overview" />
           <NavItem to="/creator/campaigns" icon={Megaphone} label="My Campaigns" />

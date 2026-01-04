@@ -183,8 +183,9 @@ export function ResetPasswordOTPPage() {
 
           <Button 
             onClick={handleVerify}
-            disabled={loading || otp.some(d => !d)}
-            className="w-full h-11 text-base bg-red-600 hover:bg-red-700 shadow-lg shadow-red-200 disabled:opacity-50"
+            loading={loading}
+            disabled={otp.some(d => !d)}
+            className="w-full h-11 text-base bg-red-600 hover:bg-red-700 shadow-lg shadow-red-200"
           >
             {loading ? 'Verifying...' : 'Verify Code'}
           </Button>

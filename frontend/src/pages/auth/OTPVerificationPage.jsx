@@ -200,8 +200,9 @@ export function OTPVerificationPage() {
 
           <Button 
             onClick={handleVerify}
-            disabled={loading || otp.some(d => !d)}
-            className="w-full h-11 text-base bg-sky-600 hover:bg-sky-700 shadow-lg shadow-blue-200 disabled:opacity-50"
+            loading={loading}
+            disabled={otp.some(d => !d)}
+            className="w-full h-11 text-base bg-sky-600 hover:bg-sky-700 shadow-lg shadow-blue-200"
           >
             {loading ? 'Verifying...' : 'Verify Email'}
           </Button>

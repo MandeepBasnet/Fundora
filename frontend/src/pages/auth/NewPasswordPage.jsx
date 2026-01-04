@@ -175,8 +175,9 @@ export function NewPasswordPage() {
 
             <Button 
               type="submit" 
-              disabled={loading || password.length < 8 || password !== confirmPassword}
-              className="w-full h-11 text-base bg-sky-600 hover:bg-sky-700 shadow-lg shadow-blue-200 disabled:opacity-50"
+              loading={loading}
+              disabled={password.length < 8 || password !== confirmPassword}
+              className="w-full h-11 text-base bg-sky-600 hover:bg-sky-700 shadow-lg shadow-blue-200"
             >
               {loading ? 'Resetting...' : 'Reset Password'}
             </Button>

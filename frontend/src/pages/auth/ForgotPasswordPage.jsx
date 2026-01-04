@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mail, Loader2 } from 'lucide-react';
+import { ArrowLeft, Mail } from 'lucide-react';
 import { Button, Card, Input } from '../../components/ui';
 import { FundoraLogo } from '../../components/FundoraLogo';
 import axios from 'axios';
@@ -71,17 +71,10 @@ export function ForgotPassword() {
 
             <Button 
               type="submit"
-              disabled={loading}
-              className="w-full h-11 text-base bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 disabled:opacity-50"
+              loading={loading}
+              className="w-full h-11 text-base bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200"
             >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Sending...
-                </span>
-              ) : (
-                'Send Reset Code'
-              )}
+              {loading ? 'Sending...' : 'Send Reset Code'}
             </Button>
           </form>
 
