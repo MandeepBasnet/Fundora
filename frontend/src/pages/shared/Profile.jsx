@@ -11,23 +11,46 @@ export function Profile() {
   // Password state
   const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
 
+  // File input ref
+  const fileInputRef = React.useRef(null);
+  const [preview, setPreview] = useState(null);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPreview(URL.createObjectURL(file));
+    }
+  };
+
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMsg({ type: '', content: '' });
     
-    const formData = new FormData(e.target);
-    const data = {
-      name: formData.get('name'),
-      email: formData.get('email'), // Note: Email update might require verification in real app
-      profile: {
-        location: formData.get('location'),
-        bio: formData.get('bio')
-      }
-    };
+    const formData = new FormData();
+    formData.append('name', e.target.name.value);
+    
+    // We don't update email usually, but if needed:
+    // formData.append('email', e.target.email.value); 
+
+    // Append profile fields directly (to match flat structure expected by controller now, or nested if we stringify)
+    // Our controller now handles flat fields bio/location
+    formData.append('bio', e.target.bio.value);
+    formData.append('location', e.target.location.value);
+    formData.append('website', e.target.website.value);
+    
+    // Social links
+    formData.append('twitter', e.target.twitter.value);
+    formData.append('facebook', e.target.facebook.value);
+    formData.append('instagram', e.target.instagram.value);
+    formData.append('linkedin', e.target.linkedin.value);
+    
+    if (fileInputRef.current.files[0]) {
+      formData.append('avatar', fileInputRef.current.files[0]);
+    }
 
     try {
-      await updateProfile(data);
+      await updateProfile(formData);
       setMsg({ type: 'success', content: 'Profile updated successfully' });
     } catch (err) {
       setMsg({ type: 'error', content: err.message || 'Failed to update profile' });
@@ -38,8 +61,9 @@ export function Profile() {
 
   const handlePasswordChange = async () => {
     if (passwords.new !== passwords.confirm) {
-      setMsg({ type: 'error', content: 'New passwords do not match' });
-      return;
+        // ... (existing password logic)
+        setMsg({ type: 'error', content: 'New passwords do not match' });
+        return;
     }
     setLoading(true);
     setMsg({ type: '', content: '' });
@@ -81,9 +105,18 @@ export function Profile() {
             <h3 className="font-bold text-lg text-slate-900 mb-6">Personal Information</h3>
 
             <div className="flex items-center gap-6 mb-8">
-              <Avatar className="h-24 w-24 text-2xl" fallback={user.name.charAt(0)} />
+              <Avatar className="h-24 w-24 text-2xl" src={preview || user.profile?.avatar} fallback={user.name.charAt(0)} />
               <div>
-                <Button variant="outline" size="sm" className="mb-2">Change Avatar</Button>
+                <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="image/png, image/jpeg, image/gif"
+                    onChange={handleFileChange}
+                />
+                <Button variant="outline" size="sm" className="mb-2" type="button" onClick={() => fileInputRef.current?.click()}>
+                    Change Avatar
+                </Button>
                 <p className="text-xs text-slate-500">JPG, GIF or PNG. Max size of 800K</p>
               </div>
             </div>
@@ -106,6 +139,10 @@ export function Profile() {
                   <label className="text-sm font-medium text-slate-700">Location</label>
                   <Input name="location" defaultValue={user.profile?.location || ''} />
                 </div>
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-sm font-medium text-slate-700">Website</label>
+                  <Input name="website" placeholder="https://yourwebsite.com" defaultValue={user.profile?.website || ''} />
+                </div>
               </div>
 
               <div className="space-y-2 mb-6">
@@ -115,6 +152,29 @@ export function Profile() {
                   className="flex min-h-[120px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                   defaultValue={user.profile?.bio || ''}
                 />
+              </div>
+
+              {/* Social Links Section */}
+              <div className="mb-6">
+                <h4 className="text-sm font-semibold text-slate-800 mb-4">Social Links</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Twitter</label>
+                    <Input name="twitter" placeholder="https://twitter.com/username" defaultValue={user.profile?.socialLinks?.twitter || ''} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Facebook</label>
+                    <Input name="facebook" placeholder="https://facebook.com/username" defaultValue={user.profile?.socialLinks?.facebook || ''} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Instagram</label>
+                    <Input name="instagram" placeholder="https://instagram.com/username" defaultValue={user.profile?.socialLinks?.instagram || ''} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">LinkedIn</label>
+                    <Input name="linkedin" placeholder="https://linkedin.com/in/username" defaultValue={user.profile?.socialLinks?.linkedin || ''} />
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-end">

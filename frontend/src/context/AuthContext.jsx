@@ -96,8 +96,10 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfile = async (userData) => {
       try {
+          // Axios automatically sets Content-Type to multipart/form-data when sending FormData
           const res = await axios.put('http://localhost:5000/api/users/me', userData);
-          setUser(prev => ({...prev, ...res.data}));
+          // Replace user state with server response to ensure we have the latest data
+          setUser(res.data);
           return { success: true };
       } catch (error) {
           return {

@@ -29,14 +29,52 @@ const updateProfile = async (req, res) => {
 
   if (user) {
     user.name = req.body.name || user.name;
-    // Don't update email indiscriminately if it requires verification logic, but for now allow it or comment out
+    // Don't update email indiscriminately if it requires verification logic
     // user.email = req.body.email || user.email; 
     
-    if (req.body.profile) {
-        user.profile = {
-            ...user.profile,
-            ...req.body.profile
+    // Handle specific profile fields that might come in as flat fields from FormData
+    const profileUpdates = {};
+    if (req.body.bio) profileUpdates.bio = req.body.bio;
+    if (req.body.location) profileUpdates.location = req.body.location;
+    if (req.body.website) profileUpdates.website = req.body.website;
+    
+    // Handle social links - only add if there are actual values
+    const socialLinksInput = {
+        twitter: req.body.twitter || undefined,
+        facebook: req.body.facebook || undefined,
+        instagram: req.body.instagram || undefined,
+        linkedin: req.body.linkedin || undefined
+    };
+    
+    // Filter out undefined values
+    const filteredSocialLinks = Object.fromEntries(
+        Object.entries(socialLinksInput).filter(([_, v]) => v !== undefined && v !== '')
+    );
+    
+    if (Object.keys(filteredSocialLinks).length > 0) {
+        profileUpdates.socialLinks = {
+            ...(user.profile?.socialLinks || {}),
+            ...filteredSocialLinks
         };
+    }
+
+    // If request implies nested profile object (JSON request), merge that too
+    if (req.body.profile) {
+        Object.assign(profileUpdates, req.body.profile);
+    }
+
+    // Handle File Upload (Cloudinary)
+    if (req.file) {
+        profileUpdates.avatar = req.file.path;
+    }
+
+    if (Object.keys(profileUpdates).length > 0) {
+        user.profile = {
+            ...(user.profile?.toObject ? user.profile.toObject() : user.profile || {}),
+            ...profileUpdates
+        };
+        // Mark profile as modified so Mongoose saves the subdocument changes
+        user.markModified('profile');
     }
 
     const updatedUser = await user.save();

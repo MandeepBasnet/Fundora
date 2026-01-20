@@ -23,6 +23,14 @@ export function Navbar() {
     return '/dashboard';
   };
 
+  // Get role-specific profile/settings URL
+  const getProfileUrl = () => {
+    if (!authUser) return '/dashboard/profile';
+    if (authUser.role === 'admin') return '/admin/settings';
+    if (authUser.role === 'creator') return '/creator/profile';
+    return '/dashboard/profile';
+  };
+
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
@@ -87,9 +95,17 @@ export function Navbar() {
                   className="flex items-center gap-2 p-2 text-gray-700 hover:text-blue-600 transition-colors"
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
                 >
-                  <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 font-semibold">
-                    {authUser.name ? authUser.name.charAt(0).toUpperCase() : <User className="w-5 h-5" />}
-                  </div>
+                  {authUser.profile?.avatar ? (
+                    <img 
+                      src={authUser.profile.avatar} 
+                      alt={authUser.name || 'User'} 
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 font-semibold">
+                      {authUser.name ? authUser.name.charAt(0).toUpperCase() : <User className="w-5 h-5" />}
+                    </div>
+                  )}
                 </button>
 
                 {isProfileOpen && (
@@ -108,7 +124,7 @@ export function Navbar() {
                         Dashboard
                       </Link>
                       <Link 
-                        to="/profile" 
+                        to={getProfileUrl()} 
                         className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-slate-50 hover:text-sky-600"
                         onClick={() => setIsProfileOpen(false)}
                       >

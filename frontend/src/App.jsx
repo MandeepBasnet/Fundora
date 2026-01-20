@@ -60,6 +60,7 @@ function App() {
           <Route path="/campaigns" element={<BrowseCampaigns />} />
           <Route path="/campaigns/:id" element={<CampaignDetail />} />
           <Route path="/start-campaign" element={<StartCampaign />} />
+          <Route path="/edit-campaign/:campaignId" element={<StartCampaign />} />
           
           {/* Admin Routes - Admin only */}
           <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
