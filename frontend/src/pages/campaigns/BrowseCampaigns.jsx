@@ -1,94 +1,111 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Filter, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
 import { Button, Input, Card, Badge, Progress } from '../../components/ui';
-import { browseCampaigns } from '../../mockData';
+// import { browseCampaigns } from '../../mockData'; // Removed mockData import
+import api from '../../services/api';
 
 export function BrowseCampaigns() {
+  const [campaigns, setCampaigns] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState({ page: 1, limit: 6, total: 0, pages: 1 });
+  
+  // Filter states
   const [sortBy, setSortBy] = useState('trending'); // most-funded, trending, closing-soon, recently-added
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(6);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [fundingType, setFundingType] = useState('');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  // Sorting logic
-  const sortedCampaigns = useMemo(() => {
-    let sorted = [...browseCampaigns];
-    
-    switch (sortBy) {
-      case 'most-funded':
-        sorted.sort((a, b) => b.raised - a.raised);
-        break;
-      case 'trending':
-        sorted.sort((a, b) => b.trendingScore - a.trendingScore);
-        break;
-      case 'closing-soon':
-        sorted.sort((a, b) => a.daysLeft - b.daysLeft);
-        break;
-      case 'recently-added':
-        sorted.sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate));
-        break;
-      default:
-        break;
-    }
-    
-    // Apply search filter
-    if (searchQuery) {
-      sorted = sorted.filter(campaign => 
-        campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        campaign.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        campaign.category.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    
-    return sorted;
-  }, [sortBy, searchQuery]);
+  // Debounce search
+  const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-  // Pagination logic
-  const totalPages = Math.ceil(sortedCampaigns.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentCampaigns = sortedCampaigns.slice(startIndex, endIndex);
+  useEffect(() => {
+    fetchCampaigns();
+  }, [debouncedSearch, sortBy, selectedCategories, fundingType, pagination.page, pagination.limit]);
 
-  // Handle page change
+  const fetchCampaigns = async () => {
+    setLoading(true);
+    try {
+      // Map sort options to backend
+      let sortParam = 'newest';
+      if (sortBy === 'trending') sortParam = 'most-backed';
+      if (sortBy === 'most-funded') sortParam = 'most-funded';
+      if (sortBy === 'closing-soon') sortParam = 'ending-soon';
+      if (sortBy === 'recently-added') sortParam = 'newest';
+
+      const params = {
+        page: pagination.page,
+        limit: pagination.limit,
+        sort: sortParam,
+        search: debouncedSearch,
+        fundingType: fundingType === 'All Types' ? '' : fundingType,
+      };
+
+      // Support multiple categories? Backend mostly supports one query param for now or custom logic.
+      // Since backend `campaignController` checks `if (category) query.category = category;`, it likely handles single string.
+      // If we want multiple, we need backend changes. For now, let's assume single selection or just take the first one if multiple selected, 
+      // or simplistic filtering. Let's just pass the first one for now or rely on client side if we fetched all? 
+      // No, let's stick to simple single category filter for MVP if backend is simple.
+      // Actually, let's allow "category" to be passed. If user selects multiple, maybe we just pick one?
+      // Or let's update frontend UI to single select radio for category for simplicity, matching Funding Type.
+      // Actually, let's stick to checkbox UI but only send one for now or send array if backend supported it.
+      // The backend code I wrote supports `query.$or` for search but `query.category = category` for exact match.
+      // I will join them by comma if backend handled it, but it doesn't.
+      // I'll leave the UI as checkboxes but sending multiple might not work perfectly without backend update.
+      // Let's just send the first selected category if any.
+      if (selectedCategories.length > 0) {
+        params.category = selectedCategories[0];
+      }
+
+      const response = await api.get('/campaigns', { params });
+      setCampaigns(response.data.campaigns);
+      setPagination(response.data.pagination);
+    } catch (error) {
+      console.error('Error fetching campaigns:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCategoryChange = (category) => {
+    setSelectedCategories(prev => {
+      const isSelected = prev.includes(category);
+      if (isSelected) {
+        return prev.filter(c => c !== category);
+      } else {
+        // Enforce single selection for now since backend is simple
+        return [category]; 
+      }
+    });
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
   const handlePageChange = (page) => {
-    setCurrentPage(page);
+    setPagination(prev => ({ ...prev, page }));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Handle sort change
-  const handleSortChange = (newSort) => {
-    setSortBy(newSort);
-    setCurrentPage(1); // Reset to first page when sorting changes
-  };
-
-  // Handle items per page change
-  const handleItemsPerPageChange = (value) => {
-    setItemsPerPage(value);
-    setCurrentPage(1); // Reset to first page when items per page changes
-  };
-
-  // Generate page numbers
-  const getPageNumbers = () => {
-    const pages = [];
-    const maxVisible = 5;
-    
-    if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      if (currentPage <= 3) {
-        pages.push(1, 2, 3, 4, '...', totalPages);
-      } else if (currentPage >= totalPages - 2) {
-        pages.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
-      } else {
-        pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
-      }
-    }
-    
-    return pages;
-  };
+  // Helper to map DB campaign to UI format if needed
+  // (Assuming backend returns compatible structure, but double check image fields etc)
+  // Backend returns: _id, title, description, currentAmount, fundingGoal, backerCount, endDate, images[], category
+  // UI expects: id, title, description, raised, goal, backers, daysLeft, image
+  const mapCampaignToUI = (c) => ({
+    id: c._id,
+    title: c.title,
+    description: c.shortDescription || c.description,
+    raised: c.currentAmount,
+    goal: c.fundingGoal,
+    backers: c.backerCount,
+    daysLeft: c.daysRemaining, // virtual field from backend
+    image: c.coverImage || (c.images && c.images[0]?.url) || 'https://via.placeholder.com/600x400',
+    category: c.category,
+    progress: c.fundingProgress // virtual field
+  });
 
   return (
     <div className="min-h-screen bg-slate-50 py-8">
@@ -108,7 +125,7 @@ export function BrowseCampaigns() {
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
-                  setCurrentPage(1); // Reset to first page on search
+                  setPagination(prev => ({ ...prev, page: 1 }));
                 }}
               />
             </div>
@@ -128,7 +145,12 @@ export function BrowseCampaigns() {
               <div className="space-y-2">
                 {['Technology', 'Agriculture', 'Education', 'Health', 'Community', 'Art & Creative'].map((cat) => (
                   <label key={cat} className="flex items-center gap-3 cursor-pointer group">
-                    <input type="checkbox" className="rounded border-slate-300 text-sky-600 focus:ring-blue-500" />
+                    <input 
+                      type="checkbox" 
+                      className="rounded border-slate-300 text-sky-600 focus:ring-blue-500"
+                      checked={selectedCategories.includes(cat)}
+                      onChange={() => handleCategoryChange(cat)}
+                    />
                     <span className="text-slate-600">{cat}</span>
                   </label>
                 ))}
@@ -137,10 +159,19 @@ export function BrowseCampaigns() {
             <Card className="p-4 border-slate-200">
               <h3 className="font-bold text-slate-900 mb-3">Funding Type</h3>
               <div className="space-y-2">
-                {['All Types', 'Reward-based', 'Donation-based', 'Milestone-based'].map((type) => (
+                {['All Types', 'reward-based', 'donation-based', 'milestone-based'].map((type) => (
                   <label key={type} className="flex items-center gap-3 cursor-pointer group">
-                    <input type="radio" name="fundingTypeMobile" className="border-slate-300 text-sky-600 focus:ring-blue-500" />
-                    <span className="text-slate-600">{type}</span>
+                    <input 
+                      type="radio" 
+                      name="fundingTypeMobile" 
+                      className="border-slate-300 text-sky-600 focus:ring-blue-500" 
+                      checked={fundingType === type || (type === 'All Types' && fundingType === '')}
+                      onChange={() => {
+                        setFundingType(type === 'All Types' ? '' : type);
+                        setPagination(prev => ({ ...prev, page: 1 }));
+                      }}
+                    />
+                    <span className="text-slate-600 capitalize">{type}</span>
                   </label>
                 ))}
               </div>
@@ -158,7 +189,12 @@ export function BrowseCampaigns() {
               <div className="space-y-3">
                 {['Technology', 'Agriculture', 'Education', 'Health', 'Community', 'Art & Creative'].map((cat) => (
                   <label key={cat} className="flex items-center gap-3 cursor-pointer group">
-                    <input type="checkbox" className="rounded border-slate-300 text-sky-600 focus:ring-blue-500" />
+                    <input 
+                      type="checkbox" 
+                      className="rounded border-slate-300 text-sky-600 focus:ring-blue-500" 
+                      checked={selectedCategories.includes(cat)}
+                      onChange={() => handleCategoryChange(cat)}
+                    />
                     <span className="text-slate-600 group-hover:text-sky-600 transition-colors">{cat}</span>
                   </label>
                 ))}
@@ -168,10 +204,19 @@ export function BrowseCampaigns() {
             <Card className="p-6 border-slate-200">
               <h3 className="font-bold text-slate-900 mb-4">Funding Type</h3>
               <div className="space-y-3">
-                {['All Types', 'Reward-based', 'Donation-based', 'Milestone-based'].map((type) => (
+                {['All Types', 'reward-based', 'donation-based', 'milestone-based'].map((type) => (
                   <label key={type} className="flex items-center gap-3 cursor-pointer group">
-                    <input type="radio" name="fundingType" className="border-slate-300 text-sky-600 focus:ring-blue-500" />
-                    <span className="text-slate-600 group-hover:text-sky-600 transition-colors">{type}</span>
+                    <input 
+                      type="radio" 
+                      name="fundingType" 
+                      className="border-slate-300 text-sky-600 focus:ring-blue-500"
+                      checked={fundingType === type || (type === 'All Types' && fundingType === '')}
+                      onChange={() => {
+                        setFundingType(type === 'All Types' ? '' : type);
+                        setPagination(prev => ({ ...prev, page: 1 }));
+                      }}
+                    />
+                    <span className="text-slate-600 group-hover:text-sky-600 transition-colors capitalize">{type}</span>
                   </label>
                 ))}
               </div>
@@ -183,7 +228,7 @@ export function BrowseCampaigns() {
             {/* Sort & Items Per Page Controls */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4 border-b border-slate-200">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-600">{sortedCampaigns.length} campaigns</span>
+                <span className="text-sm text-slate-600">{pagination.total} campaigns</span>
               </div>
               
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
@@ -192,7 +237,10 @@ export function BrowseCampaigns() {
                   <ArrowUpDown className="w-4 h-4 text-slate-400" />
                   <select 
                     value={sortBy}
-                    onChange={(e) => handleSortChange(e.target.value)}
+                    onChange={(e) => {
+                      setSortBy(e.target.value);
+                      setPagination(prev => ({ ...prev, page: 1 }));
+                    }}
                     className="text-sm border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                   >
                     <option value="trending">Trending</option>
@@ -206,8 +254,10 @@ export function BrowseCampaigns() {
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-slate-600">Show:</span>
                   <select 
-                    value={itemsPerPage}
-                    onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                    value={pagination.limit}
+                    onChange={(e) => {
+                      setPagination(prev => ({ ...prev, limit: Number(e.target.value), page: 1 }));
+                    }}
                     className="text-sm border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                   >
                     <option value={6}>6</option>
@@ -220,9 +270,13 @@ export function BrowseCampaigns() {
             </div>
 
             {/* Campaign Cards */}
-            {currentCampaigns.length > 0 ? (
+            {loading ? (
+               <div className="flex justify-center items-center py-20">
+                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600"></div>
+               </div>
+            ) : campaigns.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {currentCampaigns.map((campaign) => (
+                {campaigns.map(c => mapCampaignToUI(c)).map((campaign) => (
                   <Link to={`/campaigns/${campaign.id}`} key={campaign.id} className="group">
                     <Card className="h-full overflow-hidden hover:shadow-lg transition-shadow border-slate-200 cursor-pointer">
                       <div className="h-48 overflow-hidden relative">
@@ -249,9 +303,9 @@ export function BrowseCampaigns() {
                         <div className="space-y-3">
                           <div className="flex justify-between text-sm">
                             <span className="font-bold text-slate-900">Rs. {campaign.raised.toLocaleString()}</span>
-                            <span className="text-slate-500">{Math.round((campaign.raised/campaign.goal)*100)}%</span>
+                            <span className="text-slate-500">{campaign.progress}%</span>
                           </div>
-                          <Progress value={(campaign.raised/campaign.goal)*100} className="h-2" />
+                          <Progress value={campaign.progress} className="h-2" />
                           <div className="flex justify-between items-center pt-2 text-xs text-slate-500">
                             <span>{campaign.backers} Backers</span>
                             <span>Goal: Rs. {campaign.goal.toLocaleString()}</span>
@@ -269,40 +323,30 @@ export function BrowseCampaigns() {
             )}
             
             {/* Pagination */}
-            {totalPages > 1 && (
+            {pagination.pages > 1 && (
               <div className="flex flex-col sm:flex-row justify-between items-center mt-12 gap-4">
                 <div className="text-sm text-slate-600">
-                  Showing {startIndex + 1}-{Math.min(endIndex, sortedCampaigns.length)} of {sortedCampaigns.length}
+                  Showing {(pagination.page - 1) * pagination.limit + 1}-{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
                 </div>
                 
                 <div className="flex gap-2">
                   <Button 
                     variant="outline" 
-                    disabled={currentPage === 1}
-                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={pagination.page === 1}
+                    onClick={() => handlePageChange(pagination.page - 1)}
                   >
                     Previous
                   </Button>
                   
-                  {getPageNumbers().map((page, index) => 
-                    page === '...' ? (
-                      <span key={`ellipsis-${index}`} className="px-3 py-2 text-slate-400">...</span>
-                    ) : (
-                      <Button 
-                        key={page}
-                        variant={currentPage === page ? "secondary" : "outline"}
-                        className={currentPage === page ? "bg-sky-600 text-white hover:bg-sky-700" : ""}
-                        onClick={() => handlePageChange(page)}
-                      >
-                        {page}
-                      </Button>
-                    )
-                  )}
+                  {/* Simplified pagination for now */}
+                  <div className="flex items-center px-4 text-sm text-slate-600">
+                    Page {pagination.page} of {pagination.pages}
+                  </div>
                   
                   <Button 
                     variant="outline"
-                    disabled={currentPage === totalPages}
-                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={pagination.page === pagination.pages}
+                    onClick={() => handlePageChange(pagination.page + 1)}
                   >
                     Next
                   </Button>

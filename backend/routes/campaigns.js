@@ -10,7 +10,9 @@ const {
   deleteCampaign,
   requestCancellation,
   addCampaignMedia,
-  getCategories
+  getCategories,
+  getCampaignComments,
+  addComment
 } = require('../controllers/campaignController');
 const { protect, optionalAuth } = require('../middleware/auth');
 const upload = require('../middleware/uploadMiddleware');
@@ -35,5 +37,9 @@ router.put('/:id/cancel', protect, requestCancellation);
 // Media upload routes
 router.post('/:id/media', protect, upload.single('media'), addCampaignMedia);
 router.post('/:id/images', protect, upload.array('images', 5), addCampaignMedia);
+
+// Comment routes
+router.get('/:id/comments', getCampaignComments);
+router.post('/:id/comments', protect, addComment);
 
 module.exports = router;

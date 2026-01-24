@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   Heart, Share2, PlayCircle, ExternalLink, ShieldCheck, Wallet, CheckCircle2, Flag, MapPin, Clock, Users, MessageCircle, X, AlertTriangle
@@ -7,35 +7,120 @@ import { Button, Card, Badge, Progress, Tabs, TabsList, TabsTrigger, TabsContent
 import { ImageWithFallback } from '../components/ImageWithFallback';
 import { MilestoneTimeline } from '../components/MilestoneTimeline';
 import { RewardTier } from '../components/RewardTier';
-import { campaignData, browseCampaigns } from '../mockData';
+import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export function CampaignDetail() {
   const { id } = useParams();
+  const { user } = useAuth();
+  
+  const [campaign, setCampaign] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [newComment, setNewComment] = useState('');
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
+
   const [selectedReward, setSelectedReward] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('esewa');
-  
-  // Find the campaign from browseCampaigns if id exists, otherwise fallback to default campaignData
-  const foundCampaign = id ? browseCampaigns.find(c => c.id === parseInt(id)) : campaignData;
-  
-  // Merge found campaign with default data structure to ensure all fields (milestones, rewards etc) exist
-  // This is needed because browseCampaigns only has summary data
-  const campaign = { ...campaignData, ...foundCampaign };
 
-  const percentageFunded = Math.round((campaign.raised / campaign.goal) * 100);
+  useEffect(() => {
+    const fetchCampaignData = async () => {
+      try {
+        const [campaignRes, commentsRes] = await Promise.all([
+          api.get(`/campaigns/${id}`),
+          api.get(`/campaigns/${id}/comments`)
+        ]);
+        
+        // Transform API data to UI format if needed, or use directly if mostly compatible
+        // The schemas are quite close, but we might need some mapping for specific UI expectations
+        // e.g. images[0].url -> image
+        const c = campaignRes.data;
+        const mappedCampaign = {
+          ...c,
+          id: c._id,
+          image: c.coverImage || (c.images && c.images[0]?.url) || 'https://via.placeholder.com/800x450',
+          raised: c.currentAmount,
+          goal: c.fundingGoal,
+          backers: c.backerCount,
+          daysLeft: c.daysRemaining,
+          story: c.description, // Mapping description to story for the tab
+          rewards: c.rewardTiers?.map(r => ({ ...r, id: r._id })) || [], // Ensure ID mapping
+          creatorName: c.creator?.name || 'Unknown Creator',
+          creatorAvatar: c.creator?.profile?.avatar,
+          location: c.creator?.profile?.address?.city || 'Nepal' // Fallback
+        };
+        
+        setCampaign(mappedCampaign);
+        setComments(commentsRes.data);
+      } catch (err) {
+        console.error('Error fetching campaign details:', err);
+        setError('Failed to load campaign details. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchCampaignData();
+    }
+  }, [id]);
+
+  const handlePostComment = async () => {
+    if (!newComment.trim()) return;
+    if (!user) {
+      alert('Please login to post a comment');
+      return;
+    }
+
+    setCommentSubmitting(true);
+    try {
+      const response = await api.post(`/campaigns/${id}/comments`, { content: newComment });
+      setComments([response.data, ...comments]); // Add new comment to top
+      setNewComment('');
+    } catch (err) {
+      console.error('Error posting comment:', err);
+      alert('Failed to post comment');
+    } finally {
+      setCommentSubmitting(false);
+    }
+  };
 
   const handleBackProject = () => {
     setShowPaymentModal(true);
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600"></div>
+      </div>
+    );
+  }
+
+  if (error || !campaign) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white p-4">
+        <h2 className="text-2xl font-bold text-slate-800 mb-4">Something went wrong</h2>
+        <p className="text-slate-600 mb-6">{error || 'Campaign not found'}</p>
+        <Link to="/campaigns">
+          <Button>Back to Campaigns</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const percentageFunded = Math.round((campaign.raised / campaign.goal) * 100);
+
   return (
     <div className="min-h-screen bg-white relative">
-      {/* 1. Header Section: Title & Blurb (Kickstarter Style: Top Center) */}
+      {/* 1. Header Section */}
       <div className="bg-white pt-8 md:pt-12 pb-8 border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-10">
           <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4 tracking-tight">{campaign.title}</h1>
-          <p className="text-xl text-slate-500 max-w-3xl mx-auto leading-relaxed">{campaign.description || "A revolutionary way to help local farmers using smart technology to increase yields and sustainability."}</p>
+          <p className="text-xl text-slate-500 max-w-3xl mx-auto leading-relaxed">{campaign.shortDescription || campaign.title}</p>
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -106,7 +191,7 @@ export function CampaignDetail() {
                   </Button>
                 </div>
                 <p className="text-xs text-slate-400 text-center mt-2">
-                  All or nothing. This project will only be funded if it reaches its goal by {new Date().toLocaleDateString()}.
+                  All or nothing. This project will only be funded if it reaches its goal by {new Date(campaign.endDate).toLocaleDateString()}.
                 </p>
               </div>
             </div>
@@ -114,7 +199,7 @@ export function CampaignDetail() {
         </div>
       </div>
 
-      {/* 2. Navigation Tabs (Sticky-ish) */}
+      {/* 2. Navigation Tabs */}
       <div className="border-b border-slate-200 sticky top-0 bg-white/95 backdrop-blur-sm z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Tabs defaultValue="story" className="w-full">
@@ -125,11 +210,11 @@ export function CampaignDetail() {
               <TabsTrigger value="milestones" className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-sky-600 text-slate-600 font-medium text-sm px-4 py-5 bg-transparent shadow-none whitespace-nowrap transition-colors hover:text-sky-600">
                 Milestones & Evidence
               </TabsTrigger>
-              <TabsTrigger value="updates" className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-sky-600 text-slate-600 font-medium text-sm px-4 py-5 bg-transparent shadow-none whitespace-nowrap transition-colors hover:text-sky-600">
-                Updates <span className="ml-2 bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full text-xs">3</span>
+              <TabsTrigger value="updates" className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 text-slate-600 font-medium text-sm px-4 py-5 bg-transparent shadow-none whitespace-nowrap transition-colors hover:text-sky-600">
+                Updates <span className="ml-2 bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full text-xs">0</span>
               </TabsTrigger>
               <TabsTrigger value="comments" className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-sky-600 text-slate-600 font-medium text-sm px-4 py-5 bg-transparent shadow-none whitespace-nowrap transition-colors hover:text-sky-600">
-                Comments <span className="ml-2 bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full text-xs">12</span>
+                Comments <span className="ml-2 bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full text-xs">{comments.length}</span>
               </TabsTrigger>
             </TabsList>
 
@@ -140,7 +225,7 @@ export function CampaignDetail() {
                 <TabsContent value="story" className="mt-0 animate-in fade-in-50">
                   <div className="prose prose-slate max-w-none prose-headings:font-bold prose-p:text-slate-600 prose-img:rounded-xl">
                     <h3 className="text-2xl mb-4">About the Project</h3>
-                    <p className="text-lg leading-relaxed mb-6">{campaign.story}</p>
+                    <p className="text-lg leading-relaxed mb-6 whitespace-pre-wrap">{campaign.story}</p>
                     
                     <div className="my-10 p-6 bg-slate-50 rounded-xl border border-slate-100 flex gap-4">
                       <ShieldCheck className="w-10 h-10 text-sky-600 shrink-0" />
@@ -148,10 +233,6 @@ export function CampaignDetail() {
                         <h4 className="font-bold text-slate-900 mb-1">Fundora Verified</h4>
                         <p className="text-sm text-slate-600">This project has passed our rigorous verification process. Milestones are tracked and funds are released in stages.</p>
                       </div>
-                    </div>
-                    
-                    <div className="aspect-video bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 mb-6">
-                      [Additional Project Images/Content]
                     </div>
                   </div>
                 </TabsContent>
@@ -163,72 +244,66 @@ export function CampaignDetail() {
                       <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50">On Track</Badge>
                     </div>
                     
-                    <Card className="p-6 border-slate-200 bg-slate-50/50">
-                      <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-sky-600" />
-                        Verified Evidence
-                      </h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        <div className="aspect-square bg-white rounded-lg border border-slate-200 p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-500 hover:shadow-md transition-all group">
-                          <ExternalLink className="w-6 h-6 text-slate-400 group-hover:text-blue-500 mb-2" />
-                          <span className="text-xs font-medium text-slate-600">Prototype Demo</span>
-                        </div>
-                        <div className="aspect-square bg-white rounded-lg border border-slate-200 p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-500 hover:shadow-md transition-all group">
-                          <ExternalLink className="w-6 h-6 text-slate-400 group-hover:text-blue-500 mb-2" />
-                          <span className="text-xs font-medium text-slate-600">Field Report</span>
-                        </div>
-                      </div>
-                    </Card>
-
                     <MilestoneTimeline milestones={campaign.milestones} />
                   </div>
                 </TabsContent>
 
                 <TabsContent value="updates" className="mt-0 animate-in fade-in-50">
-                  <div className="space-y-6">
-                    {[1, 2, 3].map((i) => (
-                      <Card key={i} className="p-6 hover:border-blue-200 transition-colors cursor-pointer group">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-sm font-medium text-slate-500">Update #{4-i}</span>
-                          <span className="text-sm text-slate-400">Oct {10 + i}, 2024</span>
-                        </div>
-                        <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-blue-700 transition-colors">Production Phase {i} Initiated</h3>
-                        <p className="text-slate-600 line-clamp-2">We are happy to report that the initial batch of sensors has arrived at our warehouse and testing has begun...</p>
-                        <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-4 text-sm text-slate-500">
-                          <span className="hover:text-sky-600">12 Comments</span>
-                          <span className="hover:text-sky-600">45 Likes</span>
-                        </div>
-                      </Card>
-                    ))}
+                  <div className="text-center py-12 text-slate-500 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                    <p>No updates yet.</p>
                   </div>
                 </TabsContent>
 
                 <TabsContent value="comments" className="mt-0 animate-in fade-in-50">
                   <div className="bg-slate-50 p-6 rounded-xl mb-8">
                     <h3 className="font-bold text-slate-900 mb-4">Post a comment</h3>
-                    <textarea 
-                      className="w-full p-4 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[120px] resize-none mb-3"
-                      placeholder="Ask a question or cheer the creator on..."
-                    ></textarea>
-                    <div className="flex justify-end">
-                      <Button className="bg-sky-600 hover:bg-sky-700 text-white">Post Comment</Button>
-                    </div>
+                    {user ? (
+                      <>
+                        <textarea 
+                          className="w-full p-4 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[120px] resize-none mb-3"
+                          placeholder="Ask a question or cheer the creator on..."
+                          value={newComment}
+                          onChange={(e) => setNewComment(e.target.value)}
+                        ></textarea>
+                        <div className="flex justify-end">
+                          <Button 
+                            className="bg-sky-600 hover:bg-sky-700 text-white"
+                            onClick={handlePostComment}
+                            disabled={commentSubmitting || !newComment.trim()}
+                          >
+                            {commentSubmitting ? 'Posting...' : 'Post Comment'}
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center p-4 bg-white rounded border border-slate-200">
+                        <p className="text-slate-600 mb-2">Please log in to post a comment.</p>
+                        <Link to="/login">
+                          <Button variant="outline">Log In</Button>
+                        </Link>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="space-y-6">
-                    {[1, 2].map((i) => (
-                      <div key={i} className="flex gap-4 pb-6 border-b border-slate-100 last:border-0">
-                        <Avatar fallback={`U${i}`} className="bg-slate-200 text-slate-600" />
+                    {comments.length > 0 ? comments.map((comment) => (
+                      <div key={comment._id} className="flex gap-4 pb-6 border-b border-slate-100 last:border-0">
+                        <Avatar 
+                          src={comment.author?.profile?.avatar} 
+                          fallback={comment.author?.name?.charAt(0) || 'U'} 
+                          className="bg-slate-200 text-slate-600" 
+                        />
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-bold text-slate-900">Backer Name {i}</span>
-                            <Badge variant="secondary" className="text-[10px] bg-blue-100 text-blue-700">Super Backer</Badge>
-                            <span className="text-xs text-slate-400">• 2 days ago</span>
+                            <span className="font-bold text-slate-900">{comment.author?.name || 'Unknown User'}</span>
+                            <span className="text-xs text-slate-400">• {new Date(comment.createdAt).toLocaleDateString()}</span>
                           </div>
-                          <p className="text-slate-600 text-sm leading-relaxed">This project looks amazing! I've been waiting for a solution like this for my farm. Can you confirm the battery life?</p>
+                          <p className="text-slate-600 text-sm leading-relaxed">{comment.content}</p>
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <p className="text-center text-slate-500 py-8">No comments yet. Be the first to start the conversation!</p>
+                    )}
                   </div>
                 </TabsContent>
               </div>
@@ -239,10 +314,10 @@ export function CampaignDetail() {
                 <div className="border-b border-slate-200 pb-8">
                   <h4 className="font-bold text-slate-900 mb-4">Created by</h4>
                   <div className="flex items-center gap-4 mb-4">
-                    <Avatar className="h-16 w-16" fallback="TF" />
+                    <Avatar className="h-16 w-16" src={campaign.creatorAvatar} fallback={campaign.creatorName.charAt(0)} />
                     <div>
-                      <div className="font-bold text-lg text-slate-900">{campaign.creator}</div>
-                      <div className="text-sm text-slate-500">3 Campaigns • Chitwan, Nepal</div>
+                      <div className="font-bold text-lg text-slate-900">{campaign.creatorName}</div>
+                      <div className="text-sm text-slate-500">3 Campaigns • {campaign.location}</div>
                     </div>
                   </div>
                   <p className="text-sm text-slate-600 mb-4">We are a team of agricultural engineers and software developers passionate about modernizing farming.</p>
@@ -263,7 +338,7 @@ export function CampaignDetail() {
                 <div>
                   <h4 className="font-bold text-slate-900 mb-6">Support</h4>
                   <div className="space-y-6">
-                    {campaign.rewards.map((reward) => (
+                    {campaign.rewards.length > 0 ? campaign.rewards.map((reward) => (
                       <RewardTier 
                         key={reward.id} 
                         reward={reward}
@@ -273,7 +348,9 @@ export function CampaignDetail() {
                           handleBackProject();
                         }}
                       />
-                    ))}
+                    )) : (
+                       <p className="text-sm text-slate-500">No specific reward tiers. You can just back the project!</p>
+                    )}
                   </div>
                 </div>
 

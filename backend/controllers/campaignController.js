@@ -1,4 +1,5 @@
 const Campaign = require('../models/Campaign');
+const Comment = require('../models/Comment');
 const { CAMPAIGN_CATEGORIES, CAMPAIGN_STATUSES } = require('../models/Campaign');
 
 // @desc    Create a new campaign (as draft)
@@ -173,11 +174,21 @@ const getAllCampaigns = async (req, res) => {
       status = 'active',
       sort = 'newest',
       page = 1,
-      limit = 12
+      limit = 12,
+      search
     } = req.query;
 
     // Build query
     const query = {};
+    
+    // Search functionality
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { category: { $regex: search, $options: 'i' } }
+      ];
+    }
     
     // Only show active campaigns to public (or pending for admins)
     if (req.user?.role === 'admin') {
@@ -472,6 +483,51 @@ const getCategories = async (req, res) => {
   res.json(CAMPAIGN_CATEGORIES);
 };
 
+// @desc    Get campaign comments
+// @route   GET /api/campaigns/:id/comments
+// @access  Public
+const getCampaignComments = async (req, res) => {
+  try {
+    const comments = await Comment.find({ campaign: req.params.id })
+      .populate('author', 'name profile.avatar')
+      .sort({ createdAt: -1 });
+
+    res.json(comments);
+  } catch (error) {
+    console.error('Get comments error:', error);
+    res.status(500).json({ message: 'Server error fetching comments' });
+  }
+};
+
+// @desc    Add a comment to a campaign
+// @route   POST /api/campaigns/:id/comments
+// @access  Private
+const addComment = async (req, res) => {
+  try {
+    const { content } = req.body;
+    const campaignId = req.params.id;
+
+    const campaign = await Campaign.findById(campaignId);
+    if (!campaign) {
+      return res.status(404).json({ message: 'Campaign not found' });
+    }
+
+    const comment = await Comment.create({
+      content,
+      author: req.user._id,
+      campaign: campaignId
+    });
+
+    const populatedComment = await Comment.findById(comment._id)
+      .populate('author', 'name profile.avatar');
+
+    res.status(201).json(populatedComment);
+  } catch (error) {
+    console.error('Add comment error:', error);
+    res.status(500).json({ message: 'Server error adding comment' });
+  }
+};
+
 module.exports = {
   createCampaign,
   updateCampaign,
@@ -482,5 +538,7 @@ module.exports = {
   deleteCampaign,
   requestCancellation,
   addCampaignMedia,
-  getCategories
+  getCategories,
+  getCampaignComments,
+  addComment
 };

@@ -1,13 +1,30 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ShieldCheck, Wallet, TrendingUp } from 'lucide-react';
 import { Button } from '../components/ui';
 import { ProjectCard } from '../components/ProjectCard';
 import { Footer } from '../components/Footer';
-import { browseCampaigns } from '../mockData';
+// import { browseCampaigns } from '../mockData'; // Removed mockData import
+import api from '../services/api';
 
 export function HomePage() {
-  const trendingProjects = browseCampaigns.slice(0, 6);
+  const [trendingProjects, setTrendingProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTrendingCampaigns = async () => {
+      try {
+        const response = await api.get('/campaigns?sort=most-backed&limit=6');
+        setTrendingProjects(response.data.campaigns);
+      } catch (error) {
+        console.error('Error fetching trending campaigns:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTrendingCampaigns();
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50/50">
