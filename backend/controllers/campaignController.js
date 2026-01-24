@@ -63,38 +63,37 @@ const updateCampaign = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to edit this campaign' });
     }
 
-    // Editing restrictions based on status (FN 2.8)
-    if (campaign.status === 'active' && campaign.backerCount > 0) {
-      // Active campaigns with backers have restricted editing
-      const allowedFields = ['description', 'shortDescription'];
-      const updateKeys = Object.keys(req.body);
-      const hasRestrictedFields = updateKeys.some(key => !allowedFields.includes(key) && key !== 'images');
-      
-      if (hasRestrictedFields) {
-        return res.status(400).json({ 
-          message: 'Active campaigns with backers can only update description and images' 
-        });
-      }
-    }
-
-    // Cannot edit completed, cancelled, or rejected campaigns
-    if (['completed', 'cancelled', 'rejected'].includes(campaign.status)) {
-      return res.status(400).json({ 
-        message: `Cannot edit ${campaign.status} campaigns` 
-      });
-    }
-
-    // Update allowed fields
+    // List of fields allowed to be updated
     const updateFields = [
       'title', 'description', 'shortDescription', 'category',
       'fundingGoal', 'duration', 'fundingType',
       'rewardTiers', 'milestones', 'images', 'video', 'coverImage'
     ];
 
+    // Identify changes
+    const updates = {};
     updateFields.forEach(field => {
       if (req.body[field] !== undefined) {
-        campaign[field] = req.body[field];
+        updates[field] = req.body[field];
       }
+    });
+
+    // Special handling for active campaigns (Submit Edit Request)
+    if (campaign.status === 'active') {
+      // Store changes in pendingUpdates for admin approval
+      campaign.pendingUpdates = updates;
+      await campaign.save();
+      
+      return res.json({ 
+        message: 'Edit request submitted for administrator approval.',
+        campaign,
+        isPendingReview: true
+      });
+    }
+
+    // Direct update for draft campaigns
+    Object.keys(updates).forEach(field => {
+      campaign[field] = updates[field];
     });
 
     campaign.markModified('rewardTiers');

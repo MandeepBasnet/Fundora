@@ -1,0 +1,500 @@
+const Campaign = require('../models/Campaign');
+const User = require('../models/User');
+const nodemailer = require('nodemailer');
+
+// Predefined rejection reasons
+const REJECTION_REASONS = {
+  unrealistic_goals: 'Unrealistic Goals',
+  inappropriate_content: 'Inappropriate Content',
+  incomplete_information: 'Incomplete Information',
+  copyright_issues: 'Copyright Issues',
+  violates_guidelines: 'Violates Community Guidelines',
+  duplicate_campaign: 'Duplicate Campaign',
+  insufficient_details: 'Insufficient Details',
+  misleading_information: 'Misleading Information',
+  other: 'Other'
+};
+
+// Email transporter (reuse from existing config)
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST,
+  port: process.env.EMAIL_PORT,
+  secure: false,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+// @desc    Get all pending campaigns for review
+// @route   GET /api/admin/campaigns/pending
+// @access  Private (Admin only)
+const getPendingCampaigns = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, sort = 'oldest' } = req.query;
+
+    // Build sort option (oldest first by default for FIFO review)
+    const sortOption = sort === 'oldest' 
+      ? { submittedAt: 1 } 
+      : { submittedAt: -1 };
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [campaigns, total] = await Promise.all([
+      Campaign.find({ status: 'pending' })
+        .populate('creator', 'name email profile.avatar')
+        .sort(sortOption)
+        .skip(skip)
+        .limit(parseInt(limit))
+        .select('title category fundingGoal coverImage images submittedAt createdAt shortDescription fundingType'),
+      Campaign.countDocuments({ status: 'pending' })
+    ]);
+
+    // Calculate waiting time for each campaign
+    const campaignsWithWaitTime = campaigns.map(c => {
+      const campaign = c.toObject();
+      const submittedAt = new Date(campaign.submittedAt || campaign.createdAt);
+      const now = new Date();
+      const hoursWaiting = Math.round((now - submittedAt) / (1000 * 60 * 60));
+      
+      campaign.waitingTime = hoursWaiting < 24 
+        ? `${hoursWaiting} hours` 
+        : `${Math.round(hoursWaiting / 24)} days`;
+      campaign.isOverdue = hoursWaiting > 24;
+      
+      return campaign;
+    });
+
+    // Calculate average review time (from recent approvals)
+    const recentApprovals = await Campaign.find({ 
+      status: 'active', 
+      approvedAt: { $exists: true },
+      submittedAt: { $exists: true }
+    })
+    .sort({ approvedAt: -1 })
+    .limit(50)
+    .select('submittedAt approvedAt');
+
+    let avgReviewTimeHours = 0;
+    if (recentApprovals.length > 0) {
+      const totalHours = recentApprovals.reduce((sum, c) => {
+        return sum + ((new Date(c.approvedAt) - new Date(c.submittedAt)) / (1000 * 60 * 60));
+      }, 0);
+      avgReviewTimeHours = Math.round(totalHours / recentApprovals.length);
+    }
+
+    res.json({
+      campaigns: campaignsWithWaitTime,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit))
+      },
+      stats: {
+        totalPending: total,
+        avgReviewTimeHours
+      }
+    });
+  } catch (error) {
+    console.error('Get pending campaigns error:', error);
+    res.status(500).json({ message: 'Server error fetching pending campaigns' });
+  }
+};
+
+// @desc    Get full campaign details for review
+// @route   GET /api/admin/campaigns/:id
+// @access  Private (Admin only)
+const getCampaignForReview = async (req, res) => {
+  try {
+    const campaign = await Campaign.findById(req.params.id)
+      .populate('creator', 'name email profile createdAt');
+
+    if (!campaign) {
+      return res.status(404).json({ message: 'Campaign not found' });
+    }
+
+    // Get creator's campaign history
+    const creatorCampaigns = await Campaign.countDocuments({ 
+      creator: campaign.creator._id,
+      status: { $in: ['active', 'completed'] }
+    });
+
+    const campaignData = campaign.toObject();
+    campaignData.creatorStats = {
+      totalCampaigns: creatorCampaigns,
+      memberSince: campaign.creator.createdAt
+    };
+
+    res.json(campaignData);
+  } catch (error) {
+    console.error('Get campaign for review error:', error);
+    res.status(500).json({ message: 'Server error fetching campaign' });
+  }
+};
+
+// @desc    Approve a campaign
+// @route   PUT /api/admin/campaigns/:id/approve
+// @access  Private (Admin only)
+const approveCampaign = async (req, res) => {
+  try {
+    const { adminNotes } = req.body;
+
+    const campaign = await Campaign.findById(req.params.id)
+      .populate('creator', 'name email');
+
+    if (!campaign) {
+      return res.status(404).json({ message: 'Campaign not found' });
+    }
+
+    if (campaign.status !== 'pending') {
+      return res.status(400).json({ 
+        message: `Cannot approve campaign with status: ${campaign.status}` 
+      });
+    }
+
+    // Update campaign status
+    campaign.status = 'active';
+    campaign.approvedAt = new Date();
+    campaign.startDate = new Date();
+    campaign.endDate = new Date(Date.now() + campaign.duration * 24 * 60 * 60 * 1000);
+    if (adminNotes) campaign.adminNotes = adminNotes;
+
+    await campaign.save();
+
+    // Send approval email to creator
+    try {
+      await sendCampaignApprovedEmail(campaign.creator.email, campaign);
+    } catch (emailError) {
+      console.error('Failed to send approval email:', emailError);
+    }
+
+    res.json({ 
+      message: 'Campaign approved successfully',
+      campaign 
+    });
+  } catch (error) {
+    console.error('Approve campaign error:', error);
+    res.status(500).json({ message: 'Server error approving campaign' });
+  }
+};
+
+// @desc    Reject a campaign
+// @route   PUT /api/admin/campaigns/:id/reject
+// @access  Private (Admin only)
+const rejectCampaign = async (req, res) => {
+  try {
+    const { reason, customMessage } = req.body;
+
+    if (!reason) {
+      return res.status(400).json({ message: 'Rejection reason is required' });
+    }
+
+    const campaign = await Campaign.findById(req.params.id)
+      .populate('creator', 'name email');
+
+    if (!campaign) {
+      return res.status(404).json({ message: 'Campaign not found' });
+    }
+
+    if (campaign.status !== 'pending') {
+      return res.status(400).json({ 
+        message: `Cannot reject campaign with status: ${campaign.status}` 
+      });
+    }
+
+    // Update campaign status
+    campaign.status = 'rejected';
+    campaign.rejectionReason = reason;
+    campaign.adminNotes = customMessage || REJECTION_REASONS[reason] || reason;
+
+    await campaign.save();
+
+    // Send rejection email to creator
+    try {
+      const reasonText = REJECTION_REASONS[reason] || reason;
+      await sendCampaignRejectedEmail(campaign.creator.email, campaign, reasonText, customMessage);
+    } catch (emailError) {
+      console.error('Failed to send rejection email:', emailError);
+    }
+
+    res.json({ 
+      message: 'Campaign rejected and creator notified',
+      campaign 
+    });
+  } catch (error) {
+    console.error('Reject campaign error:', error);
+    res.status(500).json({ message: 'Server error rejecting campaign' });
+  }
+};
+
+// @desc    Bulk approve multiple campaigns
+// @route   POST /api/admin/campaigns/bulk-approve
+// @access  Private (Admin only)
+const bulkApproveCampaigns = async (req, res) => {
+  try {
+    const { campaignIds } = req.body;
+
+    if (!campaignIds || !Array.isArray(campaignIds) || campaignIds.length === 0) {
+      return res.status(400).json({ message: 'Campaign IDs array is required' });
+    }
+
+    // Verify all campaigns are pending
+    const campaigns = await Campaign.find({ 
+      _id: { $in: campaignIds },
+      status: 'pending'
+    }).populate('creator', 'name email');
+
+    if (campaigns.length !== campaignIds.length) {
+      return res.status(400).json({ 
+        message: `Only ${campaigns.length} of ${campaignIds.length} campaigns are pending and eligible for approval` 
+      });
+    }
+
+    // Approve all campaigns
+    const now = new Date();
+    const results = await Promise.all(campaigns.map(async (campaign) => {
+      campaign.status = 'active';
+      campaign.approvedAt = now;
+      campaign.startDate = now;
+      campaign.endDate = new Date(now.getTime() + campaign.duration * 24 * 60 * 60 * 1000);
+      await campaign.save();
+
+      // Send approval email (don't await to speed up)
+      sendCampaignApprovedEmail(campaign.creator.email, campaign).catch(err => {
+        console.error('Bulk approve email error:', err);
+      });
+
+      return campaign._id;
+    }));
+
+    res.json({ 
+      message: `Successfully approved ${results.length} campaigns`,
+      approvedIds: results
+    });
+  } catch (error) {
+    console.error('Bulk approve error:', error);
+    res.status(500).json({ message: 'Server error bulk approving campaigns' });
+  }
+};
+
+// @desc    Get admin dashboard stats
+// @route   GET /api/admin/stats
+// @access  Private (Admin only)
+const getAdminStats = async (req, res) => {
+  try {
+    const [
+      pendingCampaigns,
+      activeCampaigns,
+      totalUsers,
+      totalCreators,
+      totalFunding
+    ] = await Promise.all([
+      Campaign.countDocuments({ status: 'pending' }),
+      Campaign.countDocuments({ status: 'active' }),
+      User.countDocuments({}),
+      User.countDocuments({ role: 'creator' }),
+      Campaign.aggregate([
+        { $match: { status: { $in: ['active', 'completed'] } } },
+        { $group: { _id: null, total: { $sum: '$currentAmount' } } }
+      ])
+    ]);
+
+    res.json({
+      pendingApprovals: pendingCampaigns,
+      activeCampaigns,
+      totalUsers,
+      totalCreators,
+      totalFunding: totalFunding[0]?.total || 0
+    });
+  } catch (error) {
+    console.error('Get admin stats error:', error);
+    res.status(500).json({ message: 'Server error fetching stats' });
+  }
+};
+
+// @desc    Get rejection reasons list
+// @route   GET /api/admin/rejection-reasons
+// @access  Private (Admin only)
+const getRejectionReasons = async (req, res) => {
+  res.json(REJECTION_REASONS);
+};
+
+// Email helper functions
+const sendCampaignApprovedEmail = async (email, campaign) => {
+  const mailOptions = {
+    from: `"Fundora" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: `🎉 Your campaign "${campaign.title}" has been approved!`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #10b981;">Congratulations!</h1>
+        <p>Great news! Your campaign <strong>"${campaign.title}"</strong> has been approved and is now live on Fundora.</p>
+        
+        <div style="background: #f0fdf4; border-radius: 8px; padding: 20px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Campaign Details</h3>
+          <p><strong>Title:</strong> ${campaign.title}</p>
+          <p><strong>Goal:</strong> Rs. ${campaign.fundingGoal?.toLocaleString()}</p>
+          <p><strong>Duration:</strong> ${campaign.duration} days</p>
+          <p><strong>End Date:</strong> ${new Date(campaign.endDate).toLocaleDateString()}</p>
+        </div>
+        
+        <p>Your campaign is now visible to backers. Share it with your network to maximize reach!</p>
+        
+        <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/campaigns/${campaign._id}" 
+           style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 20px;">
+          View Your Campaign
+        </a>
+        
+        <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+          Thank you for choosing Fundora!<br>
+          The Fundora Team
+        </p>
+      </div>
+    `
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+const sendCampaignRejectedEmail = async (email, campaign, reasonText, customMessage) => {
+  const mailOptions = {
+    from: `"Fundora" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: `Update on your campaign "${campaign.title}"`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #374151;">Campaign Review Update</h1>
+        <p>We've reviewed your campaign <strong>"${campaign.title}"</strong> and unfortunately, we were unable to approve it at this time.</p>
+        
+        <div style="background: #fef2f2; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #ef4444;">
+          <h3 style="margin-top: 0; color: #dc2626;">Reason for Rejection</h3>
+          <p><strong>${reasonText}</strong></p>
+          ${customMessage ? `<p style="color: #6b7280;">${customMessage}</p>` : ''}
+        </div>
+        
+        <h3>What You Can Do</h3>
+        <ul>
+          <li>Review your campaign based on the feedback above</li>
+          <li>Make necessary improvements to address the issues</li>
+          <li>Resubmit your campaign for review</li>
+        </ul>
+        
+        <p>If you believe this decision was made in error or have questions, please contact our support team.</p>
+        
+        <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/edit-campaign/${campaign._id}" 
+           style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 20px;">
+          Edit Your Campaign
+        </a>
+        
+        <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+          The Fundora Team
+        </p>
+      </div>
+    `
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+// @desc    Get campaigns with pending edit requests
+// @route   GET /api/admin/campaigns/edit-requests
+// @access  Private (Admin only)
+const getEditRequests = async (req, res) => {
+  try {
+    const campaigns = await Campaign.find({ 
+      status: 'active',
+      pendingUpdates: { $ne: null }
+    })
+    .populate('creator', 'name email profile.avatar')
+    .sort({ updatedAt: -1 });
+
+    res.json(campaigns);
+  } catch (error) {
+    console.error('Get edit requests error:', error);
+    res.status(500).json({ message: 'Server error fetching edit requests' });
+  }
+};
+
+// @desc    Approve edit request
+// @route   PUT /api/admin/campaigns/:id/approve-edit
+// @access  Private (Admin only)
+const approveEditRequest = async (req, res) => {
+  try {
+    const campaign = await Campaign.findById(req.params.id);
+
+    if (!campaign) {
+      return res.status(404).json({ message: 'Campaign not found' });
+    }
+
+    if (!campaign.pendingUpdates) {
+      return res.status(400).json({ message: 'No pending updates found' });
+    }
+
+    // Apply updates
+    const updates = campaign.pendingUpdates;
+    Object.keys(updates).forEach(field => {
+      campaign[field] = updates[field];
+    });
+
+    // Clear pending updates
+    campaign.pendingUpdates = null;
+    
+    // Mark modified for arrays if needed
+    if (updates.rewardTiers) campaign.markModified('rewardTiers');
+    if (updates.milestones) campaign.markModified('milestones');
+    if (updates.images) campaign.markModified('images');
+
+    await campaign.save();
+
+    res.json({ 
+      message: 'Edit request approved and changes applied',
+      campaign 
+    });
+  } catch (error) {
+    console.error('Approve edit request error:', error);
+    res.status(500).json({ message: 'Server error approving edit' });
+  }
+};
+
+// @desc    Reject edit request
+// @route   PUT /api/admin/campaigns/:id/reject-edit
+// @access  Private (Admin only)
+const rejectEditRequest = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const campaign = await Campaign.findById(req.params.id);
+
+    if (!campaign) {
+      return res.status(404).json({ message: 'Campaign not found' });
+    }
+
+    // Clear pending updates
+    campaign.pendingUpdates = null;
+    campaign.adminNotes = `Edit request rejected on ${new Date().toISOString()}. Reason: ${reason || 'No reason provided'}`;
+
+    await campaign.save();
+
+    res.json({ 
+      message: 'Edit request rejected',
+      campaign 
+    });
+  } catch (error) {
+    console.error('Reject edit request error:', error);
+    res.status(500).json({ message: 'Server error rejecting edit' });
+  }
+};
+
+module.exports = {
+  getPendingCampaigns,
+  getCampaignForReview,
+  approveCampaign,
+  rejectCampaign,
+  bulkApproveCampaigns,
+  getAdminStats,
+  getRejectionReasons,
+  getEditRequests,
+  approveEditRequest,
+  rejectEditRequest,
+  REJECTION_REASONS
+};

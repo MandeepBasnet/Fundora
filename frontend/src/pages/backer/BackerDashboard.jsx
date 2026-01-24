@@ -97,7 +97,7 @@ export function BackerDashboard() {
                 </Button>
               </Link>
               <Link to="/campaigns">
-                <Button className="w-full justify-start bg-sky-600 hover:bg-blue-700 text-white">
+                <Button className="w-full justify-start bg-sky-600 hover:bg-sky-700 text-white">
                   <ExternalLink className="w-4 h-4 mr-2" /> Browse Campaigns
                 </Button>
               </Link>

@@ -40,7 +40,7 @@ const registerUser = async (req, res) => {
       email,
       password,
       role,
-      isVerified: false,
+      isVerified: false, 
       otp: {
         code: otp,
         expiresAt: otpExpiry

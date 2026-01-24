@@ -134,7 +134,7 @@ export function AdminDashboard() {
             <h3 className="font-bold text-lg text-slate-900 mb-4">Quick Navigation</h3>
             <div className="space-y-2">
               <Link to="/admin/campaigns">
-                <Button className="w-full justify-start bg-slate-900 hover:bg-slate-800 text-white">
+                <Button className="w-full justify-start bg-sky-600 hover:bg-sky-700 text-white">
                   <ShieldAlert className="w-4 h-4 mr-2" /> Review Campaigns
                 </Button>
               </Link>

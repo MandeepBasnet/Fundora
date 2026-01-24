@@ -242,6 +242,12 @@ const campaignSchema = new mongoose.Schema({
   },
   rejectionReason: {
     type: String
+  },
+  
+  // Edit Request (FN 2.10)
+  pendingUpdates: {
+    type: Object,
+    default: null
   }
 }, {
   timestamps: true

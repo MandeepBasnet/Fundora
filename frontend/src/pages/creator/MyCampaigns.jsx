@@ -96,7 +96,7 @@ export function MyCampaigns() {
         </div>
         <Button 
           onClick={() => navigate('/start-campaign')}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
+          className="bg-sky-600 hover:bg-sky-700 text-white"
         >
           <Plus className="w-4 h-4 mr-2" /> Start New Campaign
         </Button>
@@ -147,7 +147,7 @@ export function MyCampaigns() {
           <p className="text-slate-500 mb-4">Start your first campaign to bring your ideas to life!</p>
           <Button 
             onClick={() => navigate('/start-campaign')}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className="bg-sky-600 hover:bg-sky-700 text-white"
           >
             Start Your First Campaign
           </Button>
@@ -184,7 +184,7 @@ export function MyCampaigns() {
                           </Badge>
                         </div>
                         <p className="text-sm text-slate-500">
-                          {campaign.category} • Created {new Date(campaign.createdAt).toLocaleDateString()}
+                          {campaign.category} • {campaign.fundingType?.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Standard'} • Created {new Date(campaign.createdAt).toLocaleDateString()}
                         </p>
                         {campaign.shortDescription && (
                           <p className="text-sm text-slate-600 mt-1 line-clamp-1">{campaign.shortDescription}</p>
@@ -213,14 +213,14 @@ export function MyCampaigns() {
 
                 {/* Actions */}
                 <div className="flex md:flex-col gap-2 justify-center border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6 min-w-[140px]">
-                  {(campaign.status === 'draft' || campaign.status === 'pending') && (
+                  {(campaign.status === 'draft' || campaign.status === 'pending' || campaign.status === 'active') && (
                     <Button 
                       variant="outline" 
                       size="sm" 
                       className="justify-start gap-2"
                       onClick={() => handleEditCampaign(campaign._id)}
                     >
-                      <Edit3 className="h-4 w-4" /> Edit
+                      <Edit3 className="h-4 w-4" /> {campaign.pendingUpdates ? 'Edit (Pending Review)' : 'Edit'}
                     </Button>
                   )}
                   
@@ -318,7 +318,7 @@ export function MyCampaigns() {
 
             <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
               <Button variant="outline" onClick={() => setShowMilestoneModal(false)}>Cancel</Button>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white">Submit for Review</Button>
+              <Button className="bg-sky-600 hover:bg-sky-700 text-white">Submit for Review</Button>
             </div>
           </Card>
         </div>
