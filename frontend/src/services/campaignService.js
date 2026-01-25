@@ -1,16 +1,10 @@
-import axios from 'axios';
+import api from './api';
 
-const API_BASE_URL = 'http://localhost:5000/api/campaigns';
-
-// Helper to get auth headers
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
+const CAMPAIGNS_URL = '/campaigns';
 
 // Get all campaign categories
 export const getCategories = async () => {
-  const response = await axios.get(`${API_BASE_URL}/categories`);
+  const response = await api.get(`${CAMPAIGNS_URL}/categories`);
   return response.data;
 };
 
@@ -21,71 +15,49 @@ export const getAllCampaigns = async (filters = {}) => {
     if (value) params.append(key, value);
   });
   
-  const response = await axios.get(`${API_BASE_URL}?${params.toString()}`, {
-    headers: getAuthHeaders()
-  });
+  const response = await api.get(`${CAMPAIGNS_URL}?${params.toString()}`);
   return response.data;
 };
 
 // Get a single campaign by ID
 export const getCampaignById = async (id) => {
-  const response = await axios.get(`${API_BASE_URL}/${id}`, {
-    headers: getAuthHeaders()
-  });
+  const response = await api.get(`${CAMPAIGNS_URL}/${id}`);
   return response.data;
 };
 
 // Get current user's campaigns
 export const getMyCampaigns = async () => {
-  const response = await axios.get(`${API_BASE_URL}/my`, {
-    headers: getAuthHeaders()
-  });
+  const response = await api.get(`${CAMPAIGNS_URL}/my`);
   return response.data;
 };
 
 // Create a new campaign (as draft)
 export const createCampaign = async (campaignData) => {
-  const response = await axios.post(API_BASE_URL, campaignData, {
-    headers: {
-      ...getAuthHeaders(),
-      'Content-Type': 'application/json'
-    }
-  });
+  const response = await api.post(CAMPAIGNS_URL, campaignData);
   return response.data;
 };
 
 // Update an existing campaign
 export const updateCampaign = async (id, campaignData) => {
-  const response = await axios.put(`${API_BASE_URL}/${id}`, campaignData, {
-    headers: {
-      ...getAuthHeaders(),
-      'Content-Type': 'application/json'
-    }
-  });
+  const response = await api.put(`${CAMPAIGNS_URL}/${id}`, campaignData);
   return response.data;
 };
 
 // Submit campaign for approval
 export const submitCampaign = async (id) => {
-  const response = await axios.put(`${API_BASE_URL}/${id}/submit`, {}, {
-    headers: getAuthHeaders()
-  });
+  const response = await api.put(`${CAMPAIGNS_URL}/${id}/submit`);
   return response.data;
 };
 
 // Delete a draft campaign
 export const deleteCampaign = async (id) => {
-  const response = await axios.delete(`${API_BASE_URL}/${id}`, {
-    headers: getAuthHeaders()
-  });
+  const response = await api.delete(`${CAMPAIGNS_URL}/${id}`);
   return response.data;
 };
 
 // Request campaign cancellation
 export const requestCancellation = async (id, reason) => {
-  const response = await axios.put(`${API_BASE_URL}/${id}/cancel`, { reason }, {
-    headers: getAuthHeaders()
-  });
+  const response = await api.put(`${CAMPAIGNS_URL}/${id}/cancel`, { reason });
   return response.data;
 };
 
@@ -94,9 +66,8 @@ export const uploadCampaignMedia = async (campaignId, file, type = 'image') => {
   const formData = new FormData();
   formData.append('media', file);
 
-  const response = await axios.post(`${API_BASE_URL}/${campaignId}/media`, formData, {
+  const response = await api.post(`${CAMPAIGNS_URL}/${campaignId}/media`, formData, {
     headers: {
-      ...getAuthHeaders(),
       'Content-Type': 'multipart/form-data'
     }
   });
@@ -110,9 +81,8 @@ export const uploadCampaignImages = async (campaignId, files) => {
     formData.append('images', file);
   });
 
-  const response = await axios.post(`${API_BASE_URL}/${campaignId}/images`, formData, {
+  const response = await api.post(`${CAMPAIGNS_URL}/${campaignId}/images`, formData, {
     headers: {
-      ...getAuthHeaders(),
       'Content-Type': 'multipart/form-data'
     }
   });
@@ -127,6 +97,53 @@ export const saveDraft = async (campaignData, existingId = null) => {
   return createCampaign(campaignData);
 };
 
+// Comment methods
+export const getComments = async (campaignId) => {
+  const response = await api.get(`${CAMPAIGNS_URL}/${campaignId}/comments`);
+  return response.data;
+};
+
+export const addComment = async (campaignId, content, parentComment = null) => {
+  const response = await api.post(`${CAMPAIGNS_URL}/${campaignId}/comments`, { content, parentComment });
+  return response.data;
+};
+
+export const editComment = async (commentId, content) => {
+  const response = await api.put(`${CAMPAIGNS_URL}/comments/${commentId}`, { content });
+  return response.data;
+};
+
+export const deleteComment = async (commentId) => {
+  const response = await api.delete(`${CAMPAIGNS_URL}/comments/${commentId}`);
+  return response.data;
+};
+
+// Campaign Update methods
+export const getUpdates = async (campaignId) => {
+  const response = await api.get(`${CAMPAIGNS_URL}/${campaignId}/updates`);
+  return response.data;
+};
+
+export const createUpdate = async (campaignId, data) => {
+  const formData = new FormData();
+  formData.append('title', data.title);
+  formData.append('content', data.content);
+  
+  if (data.images) {
+    data.images.forEach(image => formData.append('images', image));
+  }
+  if (data.video) {
+    formData.append('video', data.video);
+  }
+
+  const response = await api.post(`${CAMPAIGNS_URL}/${campaignId}/updates`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+  return response.data;
+};
+
 export default {
   getCategories,
   getAllCampaigns,
@@ -139,5 +156,11 @@ export default {
   requestCancellation,
   uploadCampaignMedia,
   uploadCampaignImages,
-  saveDraft
+  saveDraft,
+  getComments,
+  addComment,
+  editComment,
+  deleteComment,
+  getUpdates,
+  createUpdate
 };

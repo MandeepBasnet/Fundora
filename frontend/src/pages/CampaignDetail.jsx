@@ -7,6 +7,8 @@ import { Button, Card, Badge, Progress, Tabs, TabsList, TabsTrigger, TabsContent
 import { ImageWithFallback } from '../components/ImageWithFallback';
 import { MilestoneTimeline } from '../components/MilestoneTimeline';
 import { RewardTier } from '../components/RewardTier';
+import CommentSection from '../components/campaigns/CommentSection';
+import UpdateFeed from '../components/campaigns/UpdateFeed';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,11 +17,9 @@ export function CampaignDetail() {
   const { user } = useAuth();
   
   const [campaign, setCampaign] = useState(null);
-  const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [newComment, setNewComment] = useState('');
-  const [commentSubmitting, setCommentSubmitting] = useState(false);
+  // Removed old comment state
 
   const [selectedReward, setSelectedReward] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -29,15 +29,10 @@ export function CampaignDetail() {
   useEffect(() => {
     const fetchCampaignData = async () => {
       try {
-        const [campaignRes, commentsRes] = await Promise.all([
-          api.get(`/campaigns/${id}`),
-          api.get(`/campaigns/${id}/comments`)
-        ]);
+        const response = await api.get(`/campaigns/${id}`);
         
-        // Transform API data to UI format if needed, or use directly if mostly compatible
-        // The schemas are quite close, but we might need some mapping for specific UI expectations
-        // e.g. images[0].url -> image
-        const c = campaignRes.data;
+        // Transform API data to UI format if needed
+        const c = response.data;
         const mappedCampaign = {
           ...c,
           id: c._id,
@@ -54,7 +49,6 @@ export function CampaignDetail() {
         };
         
         setCampaign(mappedCampaign);
-        setComments(commentsRes.data);
       } catch (err) {
         console.error('Error fetching campaign details:', err);
         setError('Failed to load campaign details. Please try again.');
@@ -67,26 +61,6 @@ export function CampaignDetail() {
       fetchCampaignData();
     }
   }, [id]);
-
-  const handlePostComment = async () => {
-    if (!newComment.trim()) return;
-    if (!user) {
-      alert('Please login to post a comment');
-      return;
-    }
-
-    setCommentSubmitting(true);
-    try {
-      const response = await api.post(`/campaigns/${id}/comments`, { content: newComment });
-      setComments([response.data, ...comments]); // Add new comment to top
-      setNewComment('');
-    } catch (err) {
-      console.error('Error posting comment:', err);
-      alert('Failed to post comment');
-    } finally {
-      setCommentSubmitting(false);
-    }
-  };
 
   const handleBackProject = () => {
     setShowPaymentModal(true);
@@ -211,10 +185,10 @@ export function CampaignDetail() {
                 Milestones & Evidence
               </TabsTrigger>
               <TabsTrigger value="updates" className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 text-slate-600 font-medium text-sm px-4 py-5 bg-transparent shadow-none whitespace-nowrap transition-colors hover:text-sky-600">
-                Updates <span className="ml-2 bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full text-xs">0</span>
+                Updates
               </TabsTrigger>
               <TabsTrigger value="comments" className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-sky-600 text-slate-600 font-medium text-sm px-4 py-5 bg-transparent shadow-none whitespace-nowrap transition-colors hover:text-sky-600">
-                Comments <span className="ml-2 bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full text-xs">{comments.length}</span>
+                Comments
               </TabsTrigger>
             </TabsList>
 
@@ -249,62 +223,11 @@ export function CampaignDetail() {
                 </TabsContent>
 
                 <TabsContent value="updates" className="mt-0 animate-in fade-in-50">
-                  <div className="text-center py-12 text-slate-500 bg-slate-50 rounded-lg border border-dashed border-slate-200">
-                    <p>No updates yet.</p>
-                  </div>
+                  <UpdateFeed campaignId={campaign.id} creatorId={campaign.creator?._id} />
                 </TabsContent>
 
                 <TabsContent value="comments" className="mt-0 animate-in fade-in-50">
-                  <div className="bg-slate-50 p-6 rounded-xl mb-8">
-                    <h3 className="font-bold text-slate-900 mb-4">Post a comment</h3>
-                    {user ? (
-                      <>
-                        <textarea 
-                          className="w-full p-4 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[120px] resize-none mb-3"
-                          placeholder="Ask a question or cheer the creator on..."
-                          value={newComment}
-                          onChange={(e) => setNewComment(e.target.value)}
-                        ></textarea>
-                        <div className="flex justify-end">
-                          <Button 
-                            className="bg-sky-600 hover:bg-sky-700 text-white"
-                            onClick={handlePostComment}
-                            disabled={commentSubmitting || !newComment.trim()}
-                          >
-                            {commentSubmitting ? 'Posting...' : 'Post Comment'}
-                          </Button>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center p-4 bg-white rounded border border-slate-200">
-                        <p className="text-slate-600 mb-2">Please log in to post a comment.</p>
-                        <Link to="/login">
-                          <Button variant="outline">Log In</Button>
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-6">
-                    {comments.length > 0 ? comments.map((comment) => (
-                      <div key={comment._id} className="flex gap-4 pb-6 border-b border-slate-100 last:border-0">
-                        <Avatar 
-                          src={comment.author?.profile?.avatar} 
-                          fallback={comment.author?.name?.charAt(0) || 'U'} 
-                          className="bg-slate-200 text-slate-600" 
-                        />
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-bold text-slate-900">{comment.author?.name || 'Unknown User'}</span>
-                            <span className="text-xs text-slate-400">• {new Date(comment.createdAt).toLocaleDateString()}</span>
-                          </div>
-                          <p className="text-slate-600 text-sm leading-relaxed">{comment.content}</p>
-                        </div>
-                      </div>
-                    )) : (
-                      <p className="text-center text-slate-500 py-8">No comments yet. Be the first to start the conversation!</p>
-                    )}
-                  </div>
+                  <CommentSection campaignId={campaign.id} creatorId={campaign.creator?._id} />
                 </TabsContent>
               </div>
 
