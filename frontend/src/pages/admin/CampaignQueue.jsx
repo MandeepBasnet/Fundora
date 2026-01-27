@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  CheckCircle2, XCircle, Eye, Clock, Calendar, FileText, Download, 
-  Loader2, AlertCircle, X, ChevronLeft, ChevronRight, Check, Image as ImageIcon
+  CheckCircle2, XCircle, Eye, Clock, 
+  Loader2, AlertCircle, X, Check, Image as ImageIcon
 } from 'lucide-react';
 import { Button, Card, Badge, Tabs, TabsList, TabsTrigger, TabsContent, Input } from '../../components/ui';
 import adminService from '../../services/adminService';
@@ -109,6 +109,13 @@ export function CampaignQueue() {
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to approve campaign');
     }
+  };
+
+  // Open reject modal
+  const openRejectModal = (campaignId) => {
+    setRejectModal({ open: true, campaignId, loading: false, isEditRequest: false });
+    setRejectReason('');
+    setRejectMessage('');
   };
 
   // Open reject modal for edit request
@@ -480,13 +487,39 @@ export function CampaignQueue() {
                         <div className="bg-red-50 p-3 rounded border border-red-100">
                           <div className="text-xs text-red-600 mb-1 font-medium">Current</div>
                           <div className="text-sm text-slate-600">
-                            {typeof editReviewModal.campaign[field] === 'object' ? JSON.stringify(editReviewModal.campaign[field]) : String(editReviewModal.campaign[field])}
+                            {field === 'images' ? (
+                              <div className="grid grid-cols-2 gap-2">
+                                {editReviewModal.campaign[field]?.map((img, idx) => (
+                                  <img 
+                                    key={idx} 
+                                    src={img.url} 
+                                    alt="Current" 
+                                    className="w-full h-20 object-cover rounded" 
+                                  />
+                                ))}
+                              </div>
+                            ) : (
+                              typeof editReviewModal.campaign[field] === 'object' ? JSON.stringify(editReviewModal.campaign[field]) : String(editReviewModal.campaign[field])
+                            )}
                           </div>
                         </div>
                         <div className="bg-green-50 p-3 rounded border border-green-100">
                           <div className="text-xs text-green-600 mb-1 font-medium">Proposed</div>
                           <div className="text-sm text-slate-900">
-                            {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                            {field === 'images' ? (
+                              <div className="grid grid-cols-2 gap-2">
+                                {value?.map((img, idx) => (
+                                  <img 
+                                    key={idx} 
+                                    src={img.url} 
+                                    alt="New update" 
+                                    className="w-full h-20 object-cover rounded" 
+                                  />
+                                ))}
+                              </div>
+                            ) : (
+                              typeof value === 'object' ? JSON.stringify(value) : String(value)
+                            )}
                           </div>
                         </div>
                       </div>

@@ -54,6 +54,9 @@ export function Navbar() {
           {/* Logo */}
           <Link to="/" className="flex items-center">
             <FundoraLogo />
+            {authUser?.role === 'admin' && (
+              <span className="ml-2 text-xs font-bold text-white bg-red-600 px-2 py-0.5 rounded-full">ADMIN</span>
+            )}
           </Link>
 
           {/* Search Bar */}

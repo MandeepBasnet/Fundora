@@ -4,7 +4,6 @@ import { ArrowRight, ShieldCheck, Wallet, TrendingUp } from 'lucide-react';
 import { Button } from '../components/ui';
 import { ProjectCard } from '../components/ProjectCard';
 import { Footer } from '../components/Footer';
-// import { browseCampaigns } from '../mockData'; // Removed mockData import
 import api from '../services/api';
 
 export function HomePage() {

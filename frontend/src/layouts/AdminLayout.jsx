@@ -32,13 +32,7 @@ export function AdminLayout() {
     <div className="flex min-h-screen bg-slate-50">
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-slate-200 hidden lg:flex lg:flex-col shrink-0">
-        <div className="p-6 border-b border-slate-100">
-          <Link to="/" className="flex items-center">
-            <FundoraLogo />
-            <span className="ml-2 text-xs font-bold text-white bg-red-600 px-2 py-0.5 rounded-full">ADMIN</span>
-          </Link>
-        </div>
-        <nav className="p-4 space-y-1 flex-1">
+        <nav className="p-4 space-y-1 flex-1 pt-6">
           <NavItem to="/admin" icon={LayoutDashboard} label="Dashboard" />
           <NavItem to="/admin/campaigns" icon={ShieldAlert} label="Campaign Queue" />
           <NavItem to="/admin/users" icon={Users} label="User Management" />

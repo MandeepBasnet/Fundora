@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Filter, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
 import { Button, Input, Card, Badge, Progress } from '../../components/ui';
-// import { browseCampaigns } from '../../mockData'; // Removed mockData import
 import api from '../../services/api';
 
 export function BrowseCampaigns() {

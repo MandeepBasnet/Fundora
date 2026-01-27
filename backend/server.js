@@ -34,6 +34,29 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+});
+
+// Increase timeout for large file uploads (2 minutes)
+server.timeout = 120000;
+server.keepAliveTimeout = 120000;
+
+// Handle connection errors gracefully (prevent ECONNRESET crashes)
+server.on('clientError', (err, socket) => {
+  console.error('Client connection error:', err.message);
+  if (socket.writable) {
+    socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
+  }
+});
+
+// Global error handlers to prevent process crash
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise);
+  console.error('Reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  // Don't exit - just log and continue
 });

@@ -9,6 +9,12 @@ const storage = new CloudinaryStorage({
       folder: 'fundora-uploads',
       resource_type: 'auto',
       allowed_formats: ['jpg', 'png', 'jpeg', 'gif', 'mp4', 'mov', 'avi', 'mkv'],
+      format: async (req, file) => {
+        // converting images to webp for better compression
+        if (file.mimetype.startsWith('image')) return 'webp';
+        return undefined; 
+      },
+      transformation: [{ width: 1200, crop: "limit" }, { quality: "auto:good" }] // Resize huge images, optimize quality
     };
   },
 });

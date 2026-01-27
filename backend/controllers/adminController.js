@@ -1,6 +1,6 @@
 const Campaign = require('../models/Campaign');
 const User = require('../models/User');
-const nodemailer = require('nodemailer');
+const cloudinary = require('../config/cloudinary');
 
 // Predefined rejection reasons
 const REJECTION_REASONS = {
@@ -15,16 +15,19 @@ const REJECTION_REASONS = {
   other: 'Other'
 };
 
-// Email transporter (reuse from existing config)
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+// Lazy email transporter - only connects when actually sending
+const getTransporter = () => {
+  const nodemailer = require('nodemailer');
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT) || 587,
+    secure: false,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+};
 
 // @desc    Get all pending campaigns for review
 // @route   GET /api/admin/campaigns/pending
@@ -323,7 +326,7 @@ const getRejectionReasons = async (req, res) => {
 // Email helper functions
 const sendCampaignApprovedEmail = async (email, campaign) => {
   const mailOptions = {
-    from: `"Fundora" <${process.env.EMAIL_USER}>`,
+    from: `"Fundora" <${process.env.SMTP_USER}>`,
     to: email,
     subject: `🎉 Your campaign "${campaign.title}" has been approved!`,
     html: `
@@ -354,12 +357,12 @@ const sendCampaignApprovedEmail = async (email, campaign) => {
     `
   };
 
-  await transporter.sendMail(mailOptions);
+  await getTransporter().sendMail(mailOptions);
 };
 
 const sendCampaignRejectedEmail = async (email, campaign, reasonText, customMessage) => {
   const mailOptions = {
-    from: `"Fundora" <${process.env.EMAIL_USER}>`,
+    from: `"Fundora" <${process.env.SMTP_USER}>`,
     to: email,
     subject: `Update on your campaign "${campaign.title}"`,
     html: `
@@ -394,7 +397,7 @@ const sendCampaignRejectedEmail = async (email, campaign, reasonText, customMess
     `
   };
 
-  await transporter.sendMail(mailOptions);
+  await getTransporter().sendMail(mailOptions);
 };
 
 // @desc    Get campaigns with pending edit requests
@@ -433,6 +436,23 @@ const approveEditRequest = async (req, res) => {
 
     // Apply updates
     const updates = campaign.pendingUpdates;
+
+    // Handle image deletion cleanup
+    if (updates.images) {
+      const newImageIds = new Set(updates.images.map(img => img.publicId));
+      const imagesToDelete = campaign.images.filter(img => !newImageIds.has(img.publicId));
+
+      for (const img of imagesToDelete) {
+        if (img.publicId) {
+          try {
+            await cloudinary.uploader.destroy(img.publicId);
+          } catch (err) {
+            console.error(`Failed to delete image ${img.publicId}:`, err);
+          }
+        }
+      }
+    }
+
     Object.keys(updates).forEach(field => {
       campaign[field] = updates[field];
     });
@@ -443,7 +463,11 @@ const approveEditRequest = async (req, res) => {
     // Mark modified for arrays if needed
     if (updates.rewardTiers) campaign.markModified('rewardTiers');
     if (updates.milestones) campaign.markModified('milestones');
-    if (updates.images) campaign.markModified('images');
+    if (updates.images) {
+      campaign.markModified('images');
+      // Update coverImage to first image or null
+      campaign.coverImage = campaign.images.length > 0 ? campaign.images[0].url : null;
+    }
 
     await campaign.save();
 

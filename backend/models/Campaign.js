@@ -248,6 +248,15 @@ const campaignSchema = new mongoose.Schema({
   pendingUpdates: {
     type: Object,
     default: null
+  },
+  
+  // Deletion Request
+  deletionRequested: {
+    type: Boolean,
+    default: false
+  },
+  deletionRequestedAt: {
+    type: Date
   }
 }, {
   timestamps: true

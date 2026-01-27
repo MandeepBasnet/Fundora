@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Button, Card, Input, Progress } from '../../components/ui';
 import campaignService from '../../services/campaignService';
+import { uploadToCloudinary } from '../../services/cloudinaryService';
 
 // Predefined categories (matches backend)
 const CAMPAIGN_CATEGORIES = [
@@ -66,15 +67,19 @@ export function StartCampaign() {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState(initialFormState);
   const [campaignDbId, setCampaignDbId] = useState(null); // Store DB id after first save
+  const [campaignStatus, setCampaignStatus] = useState('draft');
+  const [originalData, setOriginalData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showSuccessPage, setShowSuccessPage] = useState(false);
   
   // Image/Video upload refs and state
   const imageInputRef = useRef(null);
   const videoInputRef = useRef(null);
   const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [videoPreview, setVideoPreview] = useState(null);
 
@@ -94,24 +99,37 @@ export function StartCampaign() {
       setLoading(true);
       const campaign = await campaignService.getCampaignById(id);
       
-      // Map to form data
-      setFormData({
-        title: campaign.title || '',
-        description: campaign.description || '',
-        shortDescription: campaign.shortDescription || '',
-        category: campaign.category || 'Technology',
-        fundingGoal: campaign.fundingGoal?.toString() || '',
-        duration: campaign.duration || 30,
-        fundingType: campaign.fundingType || 'reward-based',
-        rewardTiers: campaign.rewardTiers?.map(t => ({ ...t, id: t._id })) || [],
-        milestones: campaign.milestones?.map(m => ({ ...m, id: m._id })) || [],
-        images: campaign.images || [],
-        video: campaign.video || null
-      });
+      const mappedData = {
+        title: campaign.pendingUpdates?.title || campaign.title || '',
+        description: campaign.pendingUpdates?.description || campaign.description || '',
+        shortDescription: campaign.pendingUpdates?.shortDescription || campaign.shortDescription || '',
+        category: campaign.pendingUpdates?.category || campaign.category || 'Technology',
+        fundingGoal: (campaign.pendingUpdates?.fundingGoal || campaign.fundingGoal)?.toString() || '',
+        duration: campaign.pendingUpdates?.duration || campaign.duration || 30,
+        fundingType: campaign.pendingUpdates?.fundingType || campaign.fundingType || 'reward-based',
+        rewardTiers: (campaign.pendingUpdates?.rewardTiers || campaign.rewardTiers)?.map((t, idx) => ({ ...t, id: t._id || `tier-${idx}` })) || [],
+        milestones: (campaign.pendingUpdates?.milestones || campaign.milestones)?.map((m, idx) => ({ ...m, id: m._id || `milestone-${idx}` })) || [],
+        images: campaign.pendingUpdates?.images || campaign.images || [],
+        video: campaign.pendingUpdates?.video || campaign.video || null
+      };
+
+      setFormData(mappedData);
+      setOriginalData(mappedData);
       
+      // CRITICAL: Set DB ID and status so edits update the existing campaign
       setCampaignDbId(campaign._id);
-      setImagePreviews(campaign.images?.map(i => i.url) || []);
-      if (campaign.video?.url) setVideoPreview(campaign.video.url);
+      setCampaignStatus(campaign.status);
+
+      if (campaign.pendingUpdates && Object.keys(campaign.pendingUpdates).length > 0) {
+        // Use pending images for preview
+        const previewImages = (campaign.pendingUpdates.images || campaign.images || []).map(i => i.url);
+        setImagePreviews(previewImages);
+        if (campaign.pendingUpdates.video?.url) setVideoPreview(campaign.pendingUpdates.video.url);
+        else if (campaign.video?.url) setVideoPreview(campaign.video.url);
+      } else {
+        setImagePreviews(campaign.images?.map(i => i.url) || []);
+        if (campaign.video?.url) setVideoPreview(campaign.video.url);
+      }
     } catch (err) {
       setError('Failed to load campaign');
       console.error(err);
@@ -188,7 +206,7 @@ export function StartCampaign() {
     (sum, m) => sum + (parseInt(m.percentage) || 0), 0
   );
 
-  // Media Upload Handlers
+  // Media Upload Handlers - Direct upload to Cloudinary (FAST)
   const handleImageSelect = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
@@ -199,30 +217,45 @@ export function StartCampaign() {
       return;
     }
 
-    // Show local previews immediately
-    const newPreviews = files.map(f => URL.createObjectURL(f));
-    setImagePreviews(prev => [...prev, ...newPreviews]);
+    setUploadingMedia(true);
+    setUploadProgress(0);
+    setError('');
 
-    // If campaign exists, upload immediately
-    if (campaignDbId) {
-      try {
-        setUploadingMedia(true);
-        const result = await campaignService.uploadCampaignImages(campaignDbId, files);
-        setFormData(prev => ({ ...prev, images: result.images }));
-        setSuccess('Images uploaded successfully');
-      } catch (err) {
-        setError('Failed to upload images');
-        // Remove failed previews
-        setImagePreviews(prev => prev.slice(0, prev.length - files.length));
-      } finally {
-        setUploadingMedia(false);
+    try {
+      const uploadedImages = [];
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        // Show preview immediately
+        const preview = URL.createObjectURL(file);
+        setImagePreviews(prev => [...prev, preview]);
+        
+        // Upload directly to Cloudinary (bypasses backend = FAST)
+        const result = await uploadToCloudinary(file, (percent) => {
+          // Calculate overall progress across all files
+          const overallProgress = Math.round(((i * 100) + percent) / files.length);
+          setUploadProgress(overallProgress);
+        });
+        
+        uploadedImages.push({ url: result.url, publicId: result.publicId });
       }
-    } else {
-      // Store files for upload after campaign creation
+      
+      // Update form data with uploaded images
       setFormData(prev => ({
         ...prev,
-        pendingImages: [...(prev.pendingImages || []), ...files]
+        images: [...(prev.images || []), ...uploadedImages]
       }));
+      
+      setSuccess(`${files.length} image(s) uploaded successfully!`);
+    } catch (err) {
+      console.error('Image upload error:', err);
+      setError('Failed to upload images: ' + err.message);
+      // Remove failed previews
+      setImagePreviews(prev => prev.slice(0, prev.length - files.length));
+    } finally {
+      setUploadingMedia(false);
+      setUploadProgress(0);
     }
   };
 
@@ -230,23 +263,31 @@ export function StartCampaign() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Show local preview
+    // Show local preview immediately
     setVideoPreview(URL.createObjectURL(file));
+    setUploadingMedia(true);
+    setUploadProgress(0);
+    setError('');
 
-    if (campaignDbId) {
-      try {
-        setUploadingMedia(true);
-        const result = await campaignService.uploadCampaignMedia(campaignDbId, file, 'video');
-        setFormData(prev => ({ ...prev, video: result.video }));
-        setSuccess('Video uploaded successfully');
-      } catch (err) {
-        setError('Failed to upload video');
-        setVideoPreview(null);
-      } finally {
-        setUploadingMedia(false);
-      }
-    } else {
-      setFormData(prev => ({ ...prev, pendingVideo: file }));
+    try {
+      // Upload directly to Cloudinary (bypasses backend = FAST for videos)
+      const result = await uploadToCloudinary(file, (percent) => {
+        setUploadProgress(percent);
+      }, 'video');
+      
+      setFormData(prev => ({
+        ...prev,
+        video: { url: result.url, publicId: result.publicId }
+      }));
+      
+      setSuccess('Video uploaded successfully!');
+    } catch (err) {
+      console.error('Video upload error:', err);
+      setError('Failed to upload video: ' + err.message);
+      setVideoPreview(null);
+    } finally {
+      setUploadingMedia(false);
+      setUploadProgress(0);
     }
   };
 
@@ -271,6 +312,7 @@ export function StartCampaign() {
       description: formData.description,
       shortDescription: formData.shortDescription,
       category: formData.category,
+      images: formData.images,
       fundingGoal: parseInt(formData.fundingGoal) || 0,
       duration: parseInt(formData.duration) || 30,
       fundingType: formData.fundingType,
@@ -349,12 +391,21 @@ export function StartCampaign() {
         await campaignService.updateCampaign(dbId, data);
       }
 
-      // Submit for approval
-      await campaignService.submitCampaign(dbId);
+      // Submit for approval (only if draft)
+      if (campaignStatus === 'draft') {
+        await campaignService.submitCampaign(dbId);
+        setSuccess('Campaign submitted for approval!');
+      } else if (campaignStatus === 'active') {
+        setSuccess('Edit request submitted for administrator approval.');
+      } else {
+        setSuccess('Campaign updated successfully!');
+      }
       
-      setSuccess('Campaign submitted for approval!');
-      setTimeout(() => navigate('/creator/campaigns'), 1500);
+      
+      setShowSuccessPage(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
+      console.error(err);
       setError(err.response?.data?.message || 'Failed to submit campaign');
     } finally {
       setLoading(false);
@@ -410,6 +461,39 @@ export function StartCampaign() {
     );
   }
 
+  if (showSuccessPage) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <Card className="max-w-xl w-full p-8 text-center animate-in zoom-in-95 duration-300">
+          <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 className="w-10 h-10" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">
+            {campaignStatus === 'active' ? 'Edit Request Submitted' : 'Campaign Submitted!'}
+          </h2>
+          <p className="text-slate-600 mb-8 max-w-md mx-auto">
+            {success || 'Your changes have been saved successfully.'}
+            {campaignStatus === 'active' && ' Admin approval is required before changes go live.'}
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              onClick={() => navigate('/creator/campaigns')} 
+              className="bg-sky-600 hover:bg-sky-700 min-w-[200px]"
+            >
+              Go to My Campaigns
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate(`/campaigns/${campaignDbId}`)}
+            >
+              View Preview
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4">
       <div className="max-w-3xl mx-auto">
@@ -447,6 +531,22 @@ export function StartCampaign() {
           <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700">
             <CheckCircle2 className="w-5 h-5" />
             {success}
+          </div>
+        )}
+
+        {/* Upload Progress */}
+        {uploadingMedia && (
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-3 mb-2">
+              <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+              <span className="text-blue-700 font-medium">Uploading... {uploadProgress}%</span>
+            </div>
+            <div className="w-full bg-blue-200 rounded-full h-2">
+              <div 
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
           </div>
         )}
 
@@ -909,12 +1009,12 @@ export function StartCampaign() {
               <Button 
                 onClick={handleSubmit} 
                 className="bg-green-600 hover:bg-green-700 px-8"
-                disabled={loading}
+                disabled={loading || (campaignStatus === 'active' && JSON.stringify(formData) === JSON.stringify(originalData))}
               >
                 {loading ? (
                   <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...</>
                 ) : (
-                  'Submit for Approval'
+                  campaignStatus === 'active' ? 'Update Campaign' : 'Submit for Approval'
                 )}
               </Button>
             )}

@@ -7,7 +7,10 @@ const {
   rejectCampaign,
   bulkApproveCampaigns,
   getAdminStats,
-  getRejectionReasons
+  getRejectionReasons,
+  getEditRequests,
+  approveEditRequest,
+  rejectEditRequest
 } = require('../controllers/adminController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -20,6 +23,11 @@ router.get('/stats', getAdminStats);
 
 // Rejection reasons
 router.get('/rejection-reasons', getRejectionReasons);
+
+// Edit request routes
+router.get('/campaigns/edit-requests', getEditRequests);
+router.put('/campaigns/:id/approve-edit', approveEditRequest);
+router.put('/campaigns/:id/reject-edit', rejectEditRequest);
 
 // Campaign approval routes
 router.get('/campaigns/pending', getPendingCampaigns);

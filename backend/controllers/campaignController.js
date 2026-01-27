@@ -321,7 +321,7 @@ const submitCampaign = async (req, res) => {
   }
 };
 
-// @desc    Delete a draft campaign
+// @desc    Delete a campaign or request deletion
 // @route   DELETE /api/campaigns/:id
 // @access  Private (Creator/Owner only)
 const deleteCampaign = async (req, res) => {
@@ -337,20 +337,51 @@ const deleteCampaign = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
-    // Can only delete draft campaigns (FN 2.9)
-    if (campaign.status !== 'draft') {
-      return res.status(400).json({ 
-        message: 'Only draft campaigns can be deleted. For active campaigns, please request cancellation.' 
+    // Draft or pending campaigns can be deleted directly
+    if (campaign.status === 'draft' || campaign.status === 'pending') {
+      // Delete associated images from Cloudinary
+      const cloudinary = require('../config/cloudinary');
+      for (const image of campaign.images || []) {
+        if (image.publicId) {
+          try {
+            await cloudinary.uploader.destroy(image.publicId);
+          } catch (err) {
+            console.error(`Failed to delete image ${image.publicId}:`, err);
+          }
+        }
+      }
+      if (campaign.video?.publicId) {
+        try {
+          await cloudinary.uploader.destroy(campaign.video.publicId, { resource_type: 'video' });
+        } catch (err) {
+          console.error('Failed to delete video:', err);
+        }
+      }
+
+      await Campaign.findByIdAndDelete(req.params.id);
+      return res.json({ message: 'Campaign deleted successfully' });
+    }
+
+    // Active/completed campaigns: request deletion (requires admin approval)
+    if (campaign.status === 'active' || campaign.status === 'completed') {
+      if (campaign.deletionRequested) {
+        return res.status(400).json({ 
+          message: 'Deletion request already pending admin approval' 
+        });
+      }
+
+      campaign.deletionRequested = true;
+      campaign.deletionRequestedAt = new Date();
+      await campaign.save();
+
+      return res.json({ 
+        message: 'Deletion request submitted for administrator approval',
+        deletionRequested: true
       });
     }
 
-    // TODO: Delete associated images from Cloudinary
-    // for (const image of campaign.images) {
-    //   await cloudinary.uploader.destroy(image.publicId);
-    // }
-
+    // Rejected/cancelled campaigns can be deleted directly
     await Campaign.findByIdAndDelete(req.params.id);
-
     res.json({ message: 'Campaign deleted successfully' });
   } catch (error) {
     console.error('Delete campaign error:', error);

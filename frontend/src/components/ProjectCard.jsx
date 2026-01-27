@@ -4,10 +4,11 @@ import { Clock, Users, Target } from 'lucide-react';
 import { Card, Button, Badge, Progress } from './ui';
 
 export function ProjectCard({ project }) {
-  const percent = Math.min(100, Math.round((project.raised / project.goal) * 100));
-  const imageUrl = project.image.startsWith('http') 
-    ? project.image 
-    : `https://source.unsplash.com/random/800x600/?${project.image}`;
+  const percent = Math.min(100, Math.round(((project.raised || 0) / (project.goal || 1)) * 100));
+  const imageTerm = project.image || 'fundraising';
+  const imageUrl = imageTerm.startsWith('http') 
+    ? imageTerm 
+    : `https://source.unsplash.com/random/800x600/?${imageTerm}`;
 
   return (
     <Card className="overflow-hidden flex flex-col h-full hover:shadow-lg transition-shadow duration-300">
@@ -18,21 +19,21 @@ export function ProjectCard({ project }) {
           className="w-full h-full object-cover"
         />
         <Badge className="absolute top-3 right-3 bg-white/90 text-slate-900 hover:bg-white">
-          {project.category}
+          {typeof project.category === 'object' ? project.category.name : project.category}
         </Badge>
       </div>
       
       <div className="p-5 flex flex-col flex-1">
         <div className="mb-4">
           <h3 className="text-xl font-bold text-slate-900 line-clamp-2 mb-1">{project.title}</h3>
-          <p className="text-sm text-slate-500">by <span className="text-sky-600 font-medium">{project.creator}</span></p>
+          <p className="text-sm text-slate-500">by <span className="text-sky-600 font-medium">{typeof project.creator === 'object' ? (project.creator.name || project.creator.username) : project.creator}</span></p>
         </div>
         
         <div className="space-y-4 mb-6 flex-1">
           <div className="space-y-2">
             <div className="flex justify-between text-sm font-medium">
-              <span className="text-sky-600">Rs. {project.raised.toLocaleString()}</span>
-              <span className="text-slate-400">of Rs. {project.goal.toLocaleString()}</span>
+              <span className="text-sky-600">Rs. {(project.raised || 0).toLocaleString()}</span>
+              <span className="text-slate-400">of Rs. {(project.goal || 0).toLocaleString()}</span>
             </div>
             <Progress value={percent} className="h-2" />
           </div>
@@ -49,14 +50,14 @@ export function ProjectCard({ project }) {
               <div className="flex items-center justify-center text-slate-400 mb-1">
                 <Users className="w-4 h-4" />
               </div>
-              <div className="font-bold text-slate-900">{project.backers}</div>
+              <div className="font-bold text-slate-900">{project.backers || 0}</div>
               <div className="text-[10px] uppercase text-slate-500 font-medium">Backers</div>
             </div>
             <div className="text-center border-l border-slate-100">
               <div className="flex items-center justify-center text-slate-400 mb-1">
                 <Clock className="w-4 h-4" />
               </div>
-              <div className="font-bold text-slate-900">{project.daysLeft}</div>
+              <div className="font-bold text-slate-900">{project.daysLeft || 0}</div>
               <div className="text-[10px] uppercase text-slate-500 font-medium">Days Left</div>
             </div>
           </div>

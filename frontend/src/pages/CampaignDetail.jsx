@@ -19,12 +19,12 @@ export function CampaignDetail() {
   const [campaign, setCampaign] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  // Removed old comment state
 
   const [selectedReward, setSelectedReward] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('esewa');
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
 
   useEffect(() => {
     const fetchCampaignData = async () => {
@@ -101,13 +101,84 @@ export function CampaignDetail() {
           <div className="grid lg:grid-cols-12 gap-8 md:gap-12">
             {/* Left Column: Media (8 cols) */}
             <div className="lg:col-span-8 space-y-4">
-               <div className="aspect-video bg-black rounded-xl overflow-hidden relative group shadow-md">
-                <ImageWithFallback 
-                  src={campaign.image}
-                  alt={campaign.title}
-                  className="w-full h-full object-cover opacity-90"
-                />
+              {/* Main Media Display */}
+              <div className="aspect-video bg-black rounded-xl overflow-hidden relative group shadow-md">
+                {(() => {
+                  const allMedia = [
+                    ...(campaign.images || []).map(img => ({ type: 'image', url: img.url || img })),
+                    ...(campaign.video?.url ? [{ type: 'video', url: campaign.video.url }] : [])
+                  ];
+                  const currentMedia = allMedia[selectedMediaIndex] || allMedia[0];
+                  
+                  if (!currentMedia) {
+                    return (
+                      <ImageWithFallback 
+                        src={campaign.image}
+                        alt={campaign.title}
+                        className="w-full h-full object-cover opacity-90"
+                      />
+                    );
+                  }
+                  
+                  if (currentMedia.type === 'video') {
+                    return (
+                      <video 
+                        src={currentMedia.url} 
+                        controls 
+                        className="w-full h-full object-cover"
+                      />
+                    );
+                  }
+                  
+                  return (
+                    <ImageWithFallback 
+                      src={currentMedia.url}
+                      alt={campaign.title}
+                      className="w-full h-full object-cover opacity-90"
+                    />
+                  );
+                })()}
               </div>
+
+              {/* Thumbnail Gallery */}
+              {(() => {
+                const allMedia = [
+                  ...(campaign.images || []).map(img => ({ type: 'image', url: img.url || img })),
+                  ...(campaign.video?.url ? [{ type: 'video', url: campaign.video.url }] : [])
+                ];
+                
+                if (allMedia.length > 1) {
+                  return (
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                      {allMedia.map((media, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setSelectedMediaIndex(idx)}
+                          className={`flex-shrink-0 w-20 h-14 rounded-lg overflow-hidden border-2 transition-all ${
+                            selectedMediaIndex === idx 
+                              ? 'border-sky-600 ring-2 ring-sky-200' 
+                              : 'border-transparent hover:border-slate-300'
+                          }`}
+                        >
+                          {media.type === 'video' ? (
+                            <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                              <PlayCircle className="w-6 h-6 text-white" />
+                            </div>
+                          ) : (
+                            <img 
+                              src={media.url} 
+                              alt={`Thumbnail ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
               <div className="flex items-center gap-2 text-sm text-slate-500 border-b border-slate-100 pb-4">
                  <MapPin className="w-4 h-4" /> {campaign.location}
                  <span className="mx-2">•</span>

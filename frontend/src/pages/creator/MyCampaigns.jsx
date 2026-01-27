@@ -244,15 +244,21 @@ export function MyCampaigns() {
                     </Button>
                   )}
 
-                  {campaign.status === 'draft' && (
+                  {!campaign.deletionRequested && campaign.status !== 'completed' && (
                     <Button 
                       variant="outline" 
                       size="sm" 
                       className="justify-start gap-2 text-red-600 border-red-200 hover:bg-red-50"
                       onClick={() => setShowDeleteConfirm(campaign._id)}
                     >
-                      <Trash2 className="h-4 w-4" /> Delete
+                      <Trash2 className="h-4 w-4" /> 
+                      {campaign.status === 'active' ? 'Request Deletion' : 'Delete'}
                     </Button>
+                  )}
+                  {campaign.deletionRequested && (
+                    <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50 text-xs">
+                      Deletion Pending
+                    </Badge>
                   )}
                 </div>
               </div>
@@ -262,25 +268,36 @@ export function MyCampaigns() {
       )}
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <Card className="w-full max-w-md bg-white shadow-2xl p-6">
-            <h2 className="text-xl font-bold text-slate-900 mb-4">Delete Campaign?</h2>
-            <p className="text-slate-600 mb-6">This action cannot be undone. Are you sure you want to delete this draft campaign?</p>
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setShowDeleteConfirm(null)}>Cancel</Button>
-              <Button 
-                className="bg-red-600 hover:bg-red-700 text-white"
-                onClick={() => handleDeleteCampaign(showDeleteConfirm)}
-                disabled={deleting}
-              >
-                {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Delete
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+      {showDeleteConfirm && (() => {
+        const campaign = campaigns.find(c => c._id === showDeleteConfirm);
+        const isActive = campaign?.status === 'active';
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <Card className="w-full max-w-md bg-white shadow-2xl p-6">
+              <h2 className="text-xl font-bold text-slate-900 mb-4">
+                {isActive ? 'Request Campaign Deletion?' : 'Delete Campaign?'}
+              </h2>
+              <p className="text-slate-600 mb-6">
+                {isActive 
+                  ? 'This active campaign has backers. Your deletion request will be sent to an administrator for review.'
+                  : 'This action cannot be undone. Are you sure you want to delete this campaign?'
+                }
+              </p>
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setShowDeleteConfirm(null)}>Cancel</Button>
+                <Button 
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  onClick={() => handleDeleteCampaign(showDeleteConfirm)}
+                  disabled={deleting}
+                >
+                  {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  {isActive ? 'Request Deletion' : 'Delete'}
+                </Button>
+              </div>
+            </Card>
+          </div>
+        );
+      })()}
 
       {/* Milestone Submission Modal */}
       {showMilestoneModal && selectedCampaign && (
