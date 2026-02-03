@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   Heart, Share2, PlayCircle, ExternalLink, ShieldCheck, Wallet, CheckCircle2, Flag, MapPin, Clock, Users, MessageCircle, X, AlertTriangle
 } from 'lucide-react';
@@ -14,6 +14,7 @@ import { useAuth } from '../context/AuthContext';
 
 export function CampaignDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   
   const [campaign, setCampaign] = useState(null);
@@ -24,6 +25,7 @@ export function CampaignDetail() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('esewa');
+  const [pledgeAmount, setPledgeAmount] = useState(100);
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
 
   useEffect(() => {
@@ -397,8 +399,8 @@ export function CampaignDetail() {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">Rs.</span>
                   <Input 
-                    type="number" 
                     defaultValue={selectedReward ? campaign.rewards.find(r => r.id === selectedReward)?.amount : 100} 
+                    onChange={(e) => setPledgeAmount(e.target.value)}
                     className="pl-10 text-lg font-bold"
                   />
                 </div>
@@ -430,7 +432,20 @@ export function CampaignDetail() {
 
             <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
               <Button variant="outline" onClick={() => setShowPaymentModal(false)}>Cancel</Button>
-              <Button className="bg-blue-600 hover:bg-blue-700 px-8">Continue to Payment</Button>
+              <Button 
+                className="bg-blue-600 hover:bg-blue-700 px-8"
+                onClick={() => {
+                  navigate('/payment/select', { 
+                    state: { 
+                      campaign, 
+                      initialAmount: pledgeAmount,
+                      initialPaymentMethod: paymentMethod
+                    } 
+                  });
+                }}
+              >
+                Continue to Payment
+              </Button>
             </div>
           </Card>
         </div>

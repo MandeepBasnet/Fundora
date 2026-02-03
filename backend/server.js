@@ -9,6 +9,7 @@ const otpRoutes = require('./routes/otp');
 const passwordRoutes = require('./routes/password');
 const campaignRoutes = require('./routes/campaigns');
 const adminRoutes = require('./routes/admin');
+const paymentRoutes = require('./routes/payment');
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use('/api/otp', otpRoutes);
 app.use('/api/password', passwordRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/payment', paymentRoutes);
 
 // Base route
 app.get('/', (req, res) => {

@@ -6,6 +6,7 @@ import { Button, Card, Badge, Input } from '../../components/ui';
 
 export function Transactions() {
   // Mock Transaction Data
+  /*
   const transactions = [
     { id: "TRX-987654", date: "2024-10-24", description: "Pledge to Eco-Friendly Water Purifier", type: "Debit", amount: 5000, status: "Completed", method: "eSewa" },
     { id: "TRX-987653", date: "2024-10-22", description: "Refund from Cancelled Project", type: "Credit", amount: 2500, status: "Completed", method: "Wallet" },
@@ -13,6 +14,37 @@ export function Transactions() {
     { id: "TRX-987651", date: "2024-10-15", description: "Wallet Top-up", type: "Credit", amount: 10000, status: "Completed", method: "Bank Transfer" },
     { id: "TRX-987650", date: "2024-10-10", description: "Pledge to Tech Education", type: "Debit", amount: 3000, status: "Failed", method: "Card" },
   ];
+  */
+
+  const [transactions, setTransactions] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  
+  // Import service
+  const fetchHistory = async () => {
+      try {
+          const { default: paymentService } = await import('../../services/paymentService');
+          const data = await paymentService.getTransactionHistory();
+          // Transform data to match UI
+          const formatted = data.map(t => ({
+              id: t.transactionId,
+              date: new Date(t.createdAt).toLocaleDateString(),
+              description: `Pledge to ${t.campaign?.title || 'Campaign'}`,
+              type: 'Debit',
+              amount: t.amount,
+              status: t.status.charAt(0).toUpperCase() + t.status.slice(1),
+              method: t.gateway.charAt(0).toUpperCase() + t.gateway.slice(1)
+          }));
+          setTransactions(formatted);
+      } catch (error) {
+          console.error("Failed to load transactions", error);
+      } finally {
+          setLoading(false);
+      }
+  };
+
+  React.useEffect(() => {
+      fetchHistory();
+  }, []);
 
   return (
     <div className="space-y-6">

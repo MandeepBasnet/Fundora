@@ -40,6 +40,11 @@ import { DashboardLayout } from './layouts/DashboardLayout'
 import { CreatorLayout } from './layouts/CreatorLayout'
 import { AdminLayout } from './layouts/AdminLayout'
 
+// Payment Pages
+import PaymentSelection from './pages/payment/PaymentSelection';
+import PaymentSuccess from './pages/payment/PaymentSuccess';
+import PaymentFailure from './pages/payment/PaymentFailure';
+
 // Auth
 import ProtectedRoute from './components/auth/ProtectedRoute'
 
@@ -99,6 +104,9 @@ function App() {
           {/* Standalone Shared Routes - Any authenticated user */}
           <Route element={<ProtectedRoute allowedRoles={['backer', 'creator']} />}>
             <Route path="/profile" element={<Profile />} />
+            <Route path="/payment/select" element={<PaymentSelection />} />
+            <Route path="/payment/success" element={<PaymentSuccess />} />
+            <Route path="/payment/failure" element={<PaymentFailure />} />
           </Route>
         </Routes>
       </AuthProvider>
