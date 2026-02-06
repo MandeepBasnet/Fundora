@@ -31,6 +31,12 @@ export const getMyCampaigns = async () => {
   return response.data;
 };
 
+// Get campaigns supported by current user
+export const getSupportedCampaigns = async () => {
+    const response = await api.get(`${CAMPAIGNS_URL}/supported`);
+    return response.data;
+};
+
 // Create a new campaign (as draft)
 export const createCampaign = async (campaignData) => {
   const response = await api.post(CAMPAIGNS_URL, campaignData);
@@ -148,7 +154,9 @@ export default {
   getCategories,
   getAllCampaigns,
   getCampaignById,
+  getCampaignById,
   getMyCampaigns,
+  getSupportedCampaigns,
   createCampaign,
   updateCampaign,
   submitCampaign,

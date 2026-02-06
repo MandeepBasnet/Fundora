@@ -47,7 +47,11 @@ export function CampaignDetail() {
           rewards: c.rewardTiers?.map(r => ({ ...r, id: r._id })) || [], // Ensure ID mapping
           creatorName: c.creator?.name || 'Unknown Creator',
           creatorAvatar: c.creator?.profile?.avatar,
-          location: c.creator?.profile?.address?.city || 'Nepal' // Fallback
+          creatorName: c.creator?.name || 'Unknown Creator',
+          creatorAvatar: c.creator?.profile?.avatar,
+          location: c.creator?.profile?.address?.city || 'Nepal', // Fallback
+          isBacked: c.isBacked || false,
+          userBackedAmount: c.userBackedAmount || 0
         };
         
         setCampaign(mappedCampaign);
@@ -196,6 +200,18 @@ export function CampaignDetail() {
               </div>
 
               <div className="space-y-6 mb-8">
+                {campaign.isBacked && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4 animate-in fade-in slide-in-from-top-2">
+                        <div className="flex items-center gap-2 mb-1">
+                            <CheckCircle2 className="w-5 h-5 text-green-600" />
+                            <span className="font-bold text-green-700">You backed this project!</span>
+                        </div>
+                        <p className="text-sm text-green-800">
+                            You have pledged <span className="font-bold">Rs. {campaign.userBackedAmount.toLocaleString()}</span> so far.
+                        </p>
+                    </div>
+                )}
+
                 <div>
                   <div className="h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
                     <div className="h-full bg-sky-600" style={{ width: `${Math.min(percentageFunded, 100)}%` }}></div>
@@ -227,7 +243,7 @@ export function CampaignDetail() {
                   className="w-full h-14 text-lg font-bold bg-sky-600 hover:bg-sky-700 text-white rounded-sm shadow-sm transition-all"
                   onClick={handleBackProject}
                 >
-                  Back this project
+                  {campaign.isBacked ? "Back this project again" : "Back this project"}
                 </Button>
                 <div className="flex gap-3">
                   <Button variant="outline" className="flex-1 rounded-sm border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-700 font-medium">
@@ -320,8 +336,8 @@ export function CampaignDetail() {
                   
                   <div className="flex gap-2">
                     <Button variant="outline" className="flex-1 text-sm" asChild>
-                      <Link to="/messages">
-                        <MessageCircle className="w-4 h-4 mr-2" /> Message
+                      <Link to="/messages" className="flex items-center justify-center gap-2 w-full h-full">
+                        <MessageCircle className="w-4 h-4" /> Message
                       </Link>
                     </Button>
                     <Button variant="link" className="flex-1 text-sky-600 font-bold hover:text-blue-700 hover:no-underline text-sm">

@@ -2,39 +2,50 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Filter, ExternalLink, MessageSquare, Download, Package } from 'lucide-react';
 import { Button, Card, Input, Badge, Progress, Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui';
-import { backerData } from '../../mockData';
 
 export function SupportedProjects() {
-  // Extended mock data for this view
-  const supportedProjects = [
-    ...backerData.activeCampaigns.map(c => ({ ...c, status: 'active', fulfillmentStatus: 'In Progress' })),
-    {
-      id: 101,
-      title: "Community Clean Water Initiative",
-      creator: "WaterAid Nepal",
-      amountBacked: 2500,
-      progress: 100,
-      daysLeft: 0,
-      image: "https://images.unsplash.com/photo-1538300342682-cf57afb97285?auto=format&fit=crop&q=80&w=300",
-      status: 'completed',
-      fulfillmentStatus: 'Delivered',
-      rewardTier: "Community Supporter",
-      backedDate: "2023-11-15"
-    },
-    {
-      id: 102,
-      title: "Traditional Art Documentary",
-      creator: "Heritage Filmmakers",
-      amountBacked: 5000,
-      progress: 100,
-      daysLeft: 0,
-      image: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&q=80&w=300",
-      status: 'completed',
-      fulfillmentStatus: 'Shipped',
-      rewardTier: "Digital Download + Credits",
-      backedDate: "2023-10-01"
-    }
-  ];
+  // State
+  const [supportedProjects, setSupportedProjects] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const { default: campaignService } = await import('../../services/campaignService');
+        const data = await campaignService.getSupportedCampaigns();
+        
+        // Transform data
+        const formatted = data.map(c => {
+            const endDate = new Date(c.endDate);
+            const now = new Date();
+            const daysLeft = Math.max(0, Math.ceil((endDate - now) / (1000 * 60 * 60 * 24)));
+            const progress = Math.min(100, Math.round((c.currentAmount / c.fundingGoal) * 100));
+
+            return {
+                id: c._id,
+                title: c.title,
+                creator: c.creator?.name || 'Unknown Creator',
+                amountBacked: c.amountBacked || 0, // This comes from my custom controller logic
+                progress: progress,
+                daysLeft: daysLeft,
+                image: c.images?.[0]?.url || 'https://placehold.co/600x400?text=No+Image',
+                status: c.status,
+                fulfillmentStatus: c.status === 'completed' ? 'Delivered' : 'In Progress', // Mocking fulfillment for now
+                rewardTier: "Community Supporter", // Web controller doesn't return tier yet, would need transaction detail
+                backedDate: c.backedDate ? new Date(c.backedDate).toLocaleDateString() : 'Recent'
+            };
+        });
+        
+        setSupportedProjects(formatted);
+      } catch (error) {
+        console.error("Failed to fetch supported projects", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
 
   return (
     <div className="space-y-8">

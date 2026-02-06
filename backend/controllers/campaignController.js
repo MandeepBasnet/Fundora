@@ -1,6 +1,7 @@
 const Campaign = require('../models/Campaign');
 const Comment = require('../models/Comment');
 const CampaignUpdate = require('../models/CampaignUpdate');
+const Transaction = require('../models/Transaction');
 const { CAMPAIGN_CATEGORIES, CAMPAIGN_STATUSES } = require('../models/Campaign');
 
 // @desc    Create a new campaign (as draft)
@@ -141,7 +142,26 @@ const getCampaignById = async (req, res) => {
       await campaign.save();
     }
 
-    res.json(campaign);
+    // Check if current user has backed this campaign
+    let isBacked = false;
+    let userBackedAmount = 0;
+    if (req.user) {
+      const transactions = await Transaction.find({
+        campaign: campaign._id,
+        user: req.user._id,
+        status: 'completed'
+      });
+      if (transactions.length > 0) {
+        isBacked = true;
+        userBackedAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+      }
+    }
+
+    res.json({
+      ...campaign.toObject(),
+      isBacked,
+      userBackedAmount
+    });
   } catch (error) {
     console.error('Get campaign error:', error);
     res.status(500).json({ message: 'Server error fetching campaign' });
@@ -161,6 +181,52 @@ const getMyCampaigns = async (req, res) => {
   } catch (error) {
     console.error('Get my campaigns error:', error);
     res.status(500).json({ message: 'Server error fetching campaigns' });
+  }
+};
+
+// @desc    Get campaigns backed by current user
+// @route   GET /api/campaigns/supported
+// @access  Private
+const getSupportedCampaigns = async (req, res) => {
+  try {
+    // Find all successful transactions for this user
+    const transactions = await Transaction.find({ 
+      user: req.user._id, 
+      status: 'completed' 
+    }).distinct('campaign'); // Get unique campaign IDs
+
+    if (!transactions.length) {
+      return res.json([]);
+    }
+
+    // Fetch full campaign details
+    const campaigns = await Campaign.find({
+      _id: { $in: transactions }
+    }).populate('creator', 'name profile.avatar');
+
+    // Attach backed amount and date info
+    const campaignsWithBackedInfo = await Promise.all(campaigns.map(async (campaign) => {
+        const campaignTransactions = await Transaction.find({
+            user: req.user._id,
+            campaign: campaign._id,
+            status: 'completed'
+        });
+
+        const totalBacked = campaignTransactions.reduce((sum, t) => sum + t.amount, 0);
+        // Getting the earliest backed date
+        const backedDate = campaignTransactions.length > 0 ? campaignTransactions[0].createdAt : null;
+
+        return {
+            ...campaign.toObject(),
+            amountBacked: totalBacked,
+            backedDate
+        };
+    }));
+
+    res.json(campaignsWithBackedInfo);
+  } catch (error) {
+    console.error('Get supported campaigns error:', error);
+    res.status(500).json({ message: 'Server error fetching supported campaigns' });
   }
 };
 
@@ -725,6 +791,7 @@ module.exports = {
   updateCampaign,
   getCampaignById,
   getMyCampaigns,
+  getSupportedCampaigns,
   getAllCampaigns,
   submitCampaign,
   deleteCampaign,

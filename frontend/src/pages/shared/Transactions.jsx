@@ -4,42 +4,65 @@ import {
 } from 'lucide-react';
 import { Button, Card, Badge, Input } from '../../components/ui';
 
-export function Transactions() {
-  // Mock Transaction Data
-  /*
-  const transactions = [
-    { id: "TRX-987654", date: "2024-10-24", description: "Pledge to Eco-Friendly Water Purifier", type: "Debit", amount: 5000, status: "Completed", method: "eSewa" },
-    { id: "TRX-987653", date: "2024-10-22", description: "Refund from Cancelled Project", type: "Credit", amount: 2500, status: "Completed", method: "Wallet" },
-    { id: "TRX-987652", date: "2024-10-20", description: "Pledge to Community Art Center", type: "Debit", amount: 1000, status: "Pending", method: "Khalti" },
-    { id: "TRX-987651", date: "2024-10-15", description: "Wallet Top-up", type: "Credit", amount: 10000, status: "Completed", method: "Bank Transfer" },
-    { id: "TRX-987650", date: "2024-10-10", description: "Pledge to Tech Education", type: "Debit", amount: 3000, status: "Failed", method: "Card" },
-  ];
-  */
+import { useAuth } from '../../context/AuthContext';
 
+export function Transactions() {
+  const { user } = useAuth();
   const [transactions, setTransactions] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
+  const [stats, setStats] = React.useState({
+    spent: 0,
+    received: 0,
+    balance: 0
+  });
   
   // Import service
   const fetchHistory = async () => {
-      try {
-          const { default: paymentService } = await import('../../services/paymentService');
-          const data = await paymentService.getTransactionHistory();
-          // Transform data to match UI
-          const formatted = data.map(t => ({
-              id: t.transactionId,
-              date: new Date(t.createdAt).toLocaleDateString(),
-              description: `Pledge to ${t.campaign?.title || 'Campaign'}`,
-              type: 'Debit',
-              amount: t.amount,
-              status: t.status.charAt(0).toUpperCase() + t.status.slice(1),
-              method: t.gateway.charAt(0).toUpperCase() + t.gateway.slice(1)
-          }));
-          setTransactions(formatted);
-      } catch (error) {
-          console.error("Failed to load transactions", error);
-      } finally {
-          setLoading(false);
-      }
+    try {
+      const { default: paymentService } = await import('../../services/paymentService');
+      const data = await paymentService.getTransactionHistory();
+      
+      let totalSpent = 0;
+      let totalReceived = 0;
+
+      // Transform data to match UI
+      const formatted = data.map(t => {
+        const isCredit = t.user?._id !== user?._id && user?.role === 'creator';
+        
+        // Calculate totals
+        if (t.status === 'completed') {
+            if (isCredit) {
+                totalReceived += t.amount;
+            } else {
+                totalSpent += t.amount;
+            }
+        }
+
+        return {
+          id: t.transactionId,
+          date: new Date(t.createdAt).toLocaleDateString(),
+          description: isCredit 
+            ? `Backing from ${t.user?.name || 'User'}` 
+            : `Pledge to ${t.campaign?.title || 'Unknown Campaign'}`,
+          type: isCredit ? 'Credit' : 'Debit',
+          amount: t.amount,
+          status: t.status.charAt(0).toUpperCase() + t.status.slice(1),
+          method: t.gateway.charAt(0).toUpperCase() + t.gateway.slice(1)
+        };
+      });
+
+      setTransactions(formatted);
+      setStats({
+        spent: totalSpent,
+        received: totalReceived,
+        balance: totalReceived - totalSpent // Simplified balance logic
+      });
+
+    } catch (error) {
+      console.error("Failed to load transactions", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   React.useEffect(() => {
@@ -67,8 +90,8 @@ export function Transactions() {
               <ArrowUpRight className="w-4 h-4 text-red-600" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-slate-900">Rs. 45,200</div>
-          <div className="text-xs text-slate-500 mt-1">+12% from last month</div>
+          <div className="text-2xl font-bold text-slate-900">Rs. {stats.spent.toLocaleString()}</div>
+          <div className="text-xs text-slate-500 mt-1">Lifetime contributions</div>
         </Card>
         
         <Card className="p-6 border-slate-200 bg-white">
@@ -78,19 +101,19 @@ export function Transactions() {
               <ArrowDownLeft className="w-4 h-4 text-green-600" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-slate-900">Rs. 12,500</div>
-          <div className="text-xs text-slate-500 mt-1">Refunds & Top-ups</div>
+          <div className="text-2xl font-bold text-slate-900">Rs. {stats.received.toLocaleString()}</div>
+          <div className="text-xs text-slate-500 mt-1">Gross funding received</div>
         </Card>
 
         <Card className="p-6 border-slate-200 bg-white">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-slate-500">Net Balance</h3>
+            <h3 className="text-sm font-medium text-slate-500">Net Flow</h3>
             <div className="p-2 bg-blue-50 rounded-lg">
               <Calendar className="w-4 h-4 text-blue-600" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-slate-900">Rs. 2,450</div>
-          <div className="text-xs text-slate-500 mt-1">Available in Wallet</div>
+          <div className="text-2xl font-bold text-slate-900">Rs. {(stats.received - stats.spent).toLocaleString()}</div>
+          <div className="text-xs text-slate-500 mt-1">Received - Spent</div>
         </Card>
       </div>
 

@@ -37,6 +37,7 @@ export function AdminLayout() {
           <NavItem to="/admin/campaigns" icon={ShieldAlert} label="Campaign Queue" />
           <NavItem to="/admin/users" icon={Users} label="User Management" />
           <NavItem to="/admin/moderation" icon={Flag} label="Moderation" />
+          <NavItem to="/admin/financial-reports" icon={LayoutDashboard} label="Financial Reports" />
           <NavItem to="/admin/settings" icon={Settings} label="Platform Settings" />
         </nav>
         <div className="p-4 border-t border-slate-100">

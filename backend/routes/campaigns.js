@@ -16,7 +16,8 @@ const {
   editComment,
   deleteComment,
   getCampaignUpdates,
-  createCampaignUpdate
+  createCampaignUpdate,
+  getSupportedCampaigns
 } = require('../controllers/campaignController');
 const { protect, optionalAuth } = require('../middleware/auth');
 const upload = require('../middleware/uploadMiddleware');
@@ -27,6 +28,7 @@ router.get('/', optionalAuth, getAllCampaigns);
 
 // Protected routes - must be before /:id to avoid conflicts
 router.get('/my', protect, getMyCampaigns);
+router.get('/supported', protect, getSupportedCampaigns);
 router.post('/', protect, createCampaign);
 
 // Campaign-specific routes

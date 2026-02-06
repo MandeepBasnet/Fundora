@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import './App.css'
+import { Toaster } from 'react-hot-toast';
 import { Navbar } from './components/Navbar'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/auth/LoginPage'
@@ -29,6 +30,7 @@ import { CampaignQueue } from './pages/admin/CampaignQueue'
 import { UserManagement } from './pages/admin/UserManagement'
 import { Moderation } from './pages/admin/Moderation'
 import { PlatformSettings } from './pages/admin/PlatformSettings'
+import FinancialReports from './pages/admin/FinancialReports'
 
 // Shared pages
 import { Messages } from './pages/shared/Messages'
@@ -53,6 +55,7 @@ function App() {
     <Router>
       <AuthProvider>
         <Navbar />
+        <Toaster position="top-right" />
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
@@ -74,6 +77,7 @@ function App() {
               <Route path="campaigns" element={<CampaignQueue />} />
               <Route path="users" element={<UserManagement />} />
               <Route path="moderation" element={<Moderation />} />
+              <Route path="financial-reports" element={<FinancialReports />} />
               <Route path="settings" element={<PlatformSettings />} />
             </Route>
           </Route>

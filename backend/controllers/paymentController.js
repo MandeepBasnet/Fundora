@@ -19,7 +19,7 @@ const decodeBase64 = (str) => {
 exports.initializePayment = async (req, res) => {
   try {
     const { campaignId, amount, paymentMethod } = req.body;
-    const userId = req.user.userId; // From authMiddleware
+    const userId = req.user._id; // From authMiddleware
 
     // 1. Validate Campaign
     const campaign = await Campaign.findById(campaignId);
@@ -234,8 +234,35 @@ exports.verifyKhalti = async (req, res) => {
 // Get Transaction History
 exports.getTransactionHistory = async (req, res) => {
     try {
-        const transactions = await Transaction.find({ user: req.user.userId })
-            .populate('campaign', 'title') // Populate campaign title
+        const { role, _id } = req.user;
+        let query = {};
+
+        if (role === 'admin') {
+            // Admin sees all transactions
+            query = {};
+        } else if (role === 'creator') {
+            // Creator sees:
+            // 1. Transactions they made (backing others)
+            // 2. Transactions made to their campaigns
+            
+            // Find campaigns owned by this creator
+            const myCampaigns = await Campaign.find({ creator: _id }).select('_id');
+            const myCampaignIds = myCampaigns.map(c => c._id);
+
+            query = {
+                $or: [
+                    { user: _id }, // Transactions they made
+                    { campaign: { $in: myCampaignIds }, status: 'completed' } // Transactions received (only completed usually relevant for revenue)
+                ]
+            };
+        } else {
+            // Backer sees only their own transactions
+            query = { user: _id };
+        }
+
+        const transactions = await Transaction.find(query)
+            .populate('campaign', 'title')
+            .populate('user', 'name email') // Helpful for creators to see who backed
             .sort({ createdAt: -1 });
         
         res.status(200).json(transactions);

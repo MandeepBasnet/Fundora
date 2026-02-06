@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const paymentController = require('../controllers/paymentController');
-const auth = require('../middleware/auth'); // Assuming auth middleware exists
+const { protect } = require('../middleware/auth'); // Correctly destructure protect
 
 // Initialize Payment (Protected)
-router.post('/initiate', auth, paymentController.initializePayment);
+router.post('/initiate', protect, paymentController.initializePayment);
 
 // Verify eSewa (Public callback or Protected if handling on frontend first - eSewa redirects to frontend usually)
 // However, our controller logic for verifyEsewa expects 'data' from query string. 
@@ -12,9 +12,9 @@ router.post('/initiate', auth, paymentController.initializePayment);
 router.get('/verify-esewa', paymentController.verifyEsewa);
 
 // Verify Khalti (Protected)
-router.post('/verify-khalti', auth, paymentController.verifyKhalti);
+router.post('/verify-khalti', protect, paymentController.verifyKhalti);
 
 // Transaction History (Protected)
-router.get('/history', auth, paymentController.getTransactionHistory);
+router.get('/history', protect, paymentController.getTransactionHistory);
 
 module.exports = router;

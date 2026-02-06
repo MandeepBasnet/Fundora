@@ -134,23 +134,25 @@ export function AdminDashboard() {
             <h3 className="font-bold text-lg text-slate-900 mb-4">Quick Navigation</h3>
             <div className="space-y-2">
               <Link to="/admin/campaigns">
-                <Button className="w-full justify-start bg-sky-600 hover:bg-sky-700 text-white">
+                <Button variant="outline" className="w-full justify-start hover:bg-sky-600 hover:text-white hover:border-sky-600">
                   <ShieldAlert className="w-4 h-4 mr-2" /> Review Campaigns
                 </Button>
               </Link>
               <Link to="/admin/users">
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start hover:bg-sky-600 hover:text-white hover:border-sky-600">
                   <Users className="w-4 h-4 mr-2" /> Manage Users
                 </Button>
               </Link>
               <Link to="/admin/moderation">
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start hover:bg-sky-600 hover:text-white hover:border-sky-600">
                   <Flag className="w-4 h-4 mr-2" /> Moderation Queue
                 </Button>
               </Link>
-              <Button variant="outline" className="w-full justify-start">
-                <DollarSign className="w-4 h-4 mr-2" /> Financial Reports
-              </Button>
+              <Link to="/admin/financial-reports">
+                <Button variant="outline" className="w-full justify-start hover:bg-sky-600 hover:text-white hover:border-sky-600">
+                  <DollarSign className="w-4 h-4 mr-2" /> Financial Reports
+                </Button>
+              </Link>
             </div>
           </Card>
           

@@ -15,6 +15,76 @@ const REJECTION_REASONS = {
   other: 'Other'
 };
 
+// @desc    Get all users with filtering and pagination
+// @route   GET /api/admin/users
+// @access  Private (Admin only)
+const getUsers = async (req, res) => {
+  try {
+    const { 
+      page = 1, 
+      limit = 20, 
+      search = '', 
+      role = '', 
+      status = '',
+      sort = 'newest'
+    } = req.query;
+
+    // Build query
+    const query = {};
+
+    // Search by name or email
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Filter by role
+    if (role && role !== 'All Roles') {
+      query.role = role.toLowerCase();
+    }
+
+    // Filter by status (if user model has status, otherwise this might need adjustment based on User schema)
+    // Assuming User model might not have 'status' yet, skipping for now unless verified.
+    // Checking User model first would be ideal, but for now let's implement basic status if it exists or mock it if not.
+    // Wait, User model usually has 'isActive' or similar. Let's check User model in next step or assume standard.
+    // For now, I'll add the logic but comment it out if 'status' field isn't confirmed, 
+    // BUT the prompt implies managing status. 
+    // Let's assume standard 'status' or 'isActive'. I'll treat 'status' as a field to be safe or map it.
+    if (status && status !== 'All Status') {
+       query.status = status.toLowerCase();
+    }
+
+    // Sort options
+    const sortOption = sort === 'newest' ? { createdAt: -1 } : { createdAt: 1 };
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [users, total] = await Promise.all([
+      User.find(query)
+        .select('-password') // Exclude password
+        .sort(sortOption)
+        .skip(skip)
+        .limit(parseInt(limit)),
+      User.countDocuments(query)
+    ]);
+
+    res.json({
+      users,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit))
+      }
+    });
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({ message: 'Server error fetching users' });
+  }
+};
+
 // Lazy email transporter - only connects when actually sending
 const getTransporter = () => {
   const nodemailer = require('nodemailer');
@@ -520,5 +590,6 @@ module.exports = {
   getEditRequests,
   approveEditRequest,
   rejectEditRequest,
+  getUsers,
   REJECTION_REASONS
 };

@@ -64,6 +64,16 @@ const transactionSchema = new mongoose.Schema({
   // Dates
   paidAt: {
     type: Date
+  },
+
+  // Payout Tracking (FN 4.7)
+  payoutStatus: {
+    type: String,
+    enum: ['pending', 'processing', 'paid'],
+    default: 'pending'
+  },
+  payoutDate: {
+    type: Date
   }
 }, {
   timestamps: true
@@ -72,7 +82,7 @@ const transactionSchema = new mongoose.Schema({
 // Indexes
 transactionSchema.index({ user: 1 });
 transactionSchema.index({ campaign: 1 });
-transactionSchema.index({ transactionId: 1 });
+
 transactionSchema.index({ status: 1 });
 
 module.exports = mongoose.model('Transaction', transactionSchema);

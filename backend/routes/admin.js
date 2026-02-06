@@ -10,8 +10,10 @@ const {
   getRejectionReasons,
   getEditRequests,
   approveEditRequest,
-  rejectEditRequest
+  rejectEditRequest,
+  getUsers
 } = require('../controllers/adminController');
+const { getFinancialStats } = require('../controllers/payoutController');
 const { protect, authorize } = require('../middleware/auth');
 
 // All routes require admin role
@@ -20,6 +22,9 @@ router.use(authorize('admin'));
 
 // Dashboard stats
 router.get('/stats', getAdminStats);
+
+// Financial Reports (FN 4.7)
+router.get('/financial-reports', getFinancialStats);
 
 // Rejection reasons
 router.get('/rejection-reasons', getRejectionReasons);
@@ -35,5 +40,8 @@ router.get('/campaigns/:id', getCampaignForReview);
 router.put('/campaigns/:id/approve', approveCampaign);
 router.put('/campaigns/:id/reject', rejectCampaign);
 router.post('/campaigns/bulk-approve', bulkApproveCampaigns);
+
+// User Management Routes (FN 4.8)
+router.get('/users', getUsers);
 
 module.exports = router;
