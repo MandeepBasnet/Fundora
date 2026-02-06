@@ -10,11 +10,28 @@ export function HomePage() {
   const [trendingProjects, setTrendingProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Helper to map DB campaign to UI format (matching BrowseCampaigns logic)
+  const mapCampaignToUI = (c) => ({
+    id: c._id,
+    title: c.title,
+    // description: c.shortDescription || c.description, 
+    // ProjectCard doesn't seem to use description, but keeping standard
+    raised: c.currentAmount,
+    goal: c.fundingGoal,
+    backers: c.backerCount,
+    daysLeft: c.daysRemaining,
+    // Fix: Prioritize Cloudinary image
+    image: c.coverImage || (c.images && c.images[0]?.url) || 'fundraising',
+    category: c.category,
+    creator: c.creator,
+  });
+
   useEffect(() => {
     const fetchTrendingCampaigns = async () => {
       try {
         const response = await api.get('/campaigns?sort=most-backed&limit=6');
-        setTrendingProjects(response.data.campaigns);
+        const formattedCampaigns = response.data.campaigns.map(mapCampaignToUI);
+        setTrendingProjects(formattedCampaigns);
       } catch (error) {
         console.error('Error fetching trending campaigns:', error);
       } finally {
@@ -58,7 +75,7 @@ export function HomePage() {
                   </Button>
                 </Link>
                 <Link to="/campaigns">
-                  <Button size="lg" variant="outline" className="border-white/30 text-black hover:bg-white/10 hover:text-black text-base px-8 h-12 backdrop-blur-sm">
+                  <Button size="lg" variant="outline" className="border-white/30 text-black hover:bg-blue-50 text-base px-8 h-12 font-bold shadow-xl">
                     Explore Projects
                   </Button>
                 </Link>

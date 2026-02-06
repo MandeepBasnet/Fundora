@@ -44,10 +44,10 @@ const CommentItem = ({ comment, onReply, onEdit, onDelete, depth = 0 }) => {
       </div>
       
       <div className="flex-grow">
-        <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+        <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
           <div className="flex justify-between items-start mb-1">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-gray-900 dark:text-gray-100">{comment.author.name}</span>
+              <span className="font-semibold text-gray-900">{comment.author.name}</span>
               {comment.author.role === 'admin' && (
                 <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">Admin</span>
               )}
@@ -64,7 +64,7 @@ const CommentItem = ({ comment, onReply, onEdit, onDelete, depth = 0 }) => {
               <textarea
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
-                className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                className="w-full p-2 border rounded-md"
                 rows="3"
               />
               <div className="flex gap-2 mt-2">
@@ -84,7 +84,7 @@ const CommentItem = ({ comment, onReply, onEdit, onDelete, depth = 0 }) => {
               </div>
             </form>
           ) : (
-            <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap text-sm">
+            <div className="text-gray-700 whitespace-pre-wrap text-sm">
               {comment.isDeleted ? (
                 <span className="italic text-gray-400">[Comment deleted by user]</span>
               ) : (
@@ -107,7 +107,7 @@ const CommentItem = ({ comment, onReply, onEdit, onDelete, depth = 0 }) => {
           {canEdit && (
             <button 
               onClick={() => setIsEditing(!isEditing)}
-              className="hover:text-blue-600"
+              className="hover:text-sky-600"
             >
               Edit
             </button>
@@ -129,7 +129,7 @@ const CommentItem = ({ comment, onReply, onEdit, onDelete, depth = 0 }) => {
               value={replyContent}
               onChange={(e) => setReplyContent(e.target.value)}
               placeholder={`Reply to ${comment.author.name}...`}
-              className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-sm"
+              className="w-full p-2 border rounded-md text-sm"
               rows="2"
               autoFocus
             />

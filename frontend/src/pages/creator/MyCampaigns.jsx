@@ -39,7 +39,7 @@ export function MyCampaigns() {
       case 'active': return 'bg-green-100 text-green-700 border-green-200';
       case 'draft': return 'bg-slate-100 text-slate-700 border-slate-200';
       case 'pending': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-      case 'completed': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'completed': return 'bg-sky-100 text-sky-700 border-sky-200';
       case 'cancelled': return 'bg-red-100 text-red-700 border-red-200';
       case 'rejected': return 'bg-red-100 text-red-700 border-red-200';
       default: return 'bg-slate-100 text-slate-700';
@@ -82,7 +82,7 @@ export function MyCampaigns() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
       </div>
     );
   }
@@ -158,7 +158,10 @@ export function MyCampaigns() {
             <Card key={campaign._id} className="p-5 hover:shadow-md transition-shadow border-slate-200">
               <div className="flex flex-col md:flex-row gap-6">
                 {/* Image */}
-                <div className="w-full md:w-48 h-32 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+                <div 
+                  className="w-full md:w-48 h-32 shrink-0 rounded-lg overflow-hidden bg-slate-100 cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => handleViewCampaign(campaign._id)}
+                >
                   {campaign.coverImage || campaign.images?.[0]?.url ? (
                     <img 
                       src={campaign.coverImage || campaign.images[0].url} 
@@ -178,7 +181,12 @@ export function MyCampaigns() {
                     <div className="flex justify-between items-start">
                       <div>
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-bold text-lg text-slate-900">{campaign.title}</h3>
+                          <h3 
+                            className="font-bold text-lg text-slate-900 cursor-pointer hover:text-sky-600 transition-colors"
+                            onClick={() => handleViewCampaign(campaign._id)}
+                          >
+                            {campaign.title}
+                          </h3>
                           <Badge variant="outline" className={getStatusColor(campaign.status)}>
                             {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
                           </Badge>
@@ -237,7 +245,7 @@ export function MyCampaigns() {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="justify-start gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                      className="justify-start gap-2 text-sky-600 border-sky-200 hover:bg-sky-50"
                       onClick={() => handleOpenMilestoneModal(campaign)}
                     >
                       <CheckCircle2 className="h-4 w-4" /> Submit Proof

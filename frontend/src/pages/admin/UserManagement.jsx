@@ -80,7 +80,7 @@ export function UserManagement() {
             onChange={(e) => handleFilterChange('search', e.target.value)}
           />
           <select 
-            className="h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
             value={filters.role}
             onChange={(e) => handleFilterChange('role', e.target.value)}
           >
@@ -90,7 +90,7 @@ export function UserManagement() {
             <option value="admin">Admin</option>
           </select>
           <select 
-            className="h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
             value={filters.status}
             onChange={(e) => handleFilterChange('status', e.target.value)}
           >
@@ -125,7 +125,7 @@ export function UserManagement() {
                     <tr key={user._id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs uppercase">
+                        <div className="w-8 h-8 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center font-bold text-xs uppercase">
                             {user.name ? user.name.charAt(0) : 'U'}
                         </div>
                         <div>
@@ -137,7 +137,7 @@ export function UserManagement() {
                     <td className="px-6 py-4">
                         <Badge variant="outline" className={
                         user.role === 'admin' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                        user.role === 'creator' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                        user.role === 'creator' ? 'bg-sky-50 text-sky-700 border-sky-200' :
                         'bg-slate-50 text-slate-700 border-slate-200'
                         }>
                         {user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Backer'}

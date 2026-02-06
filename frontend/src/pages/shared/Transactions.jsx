@@ -108,8 +108,8 @@ export function Transactions() {
         <Card className="p-6 border-slate-200 bg-white">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-slate-500">Net Flow</h3>
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <Calendar className="w-4 h-4 text-blue-600" />
+            <div className="p-2 bg-sky-50 rounded-lg">
+              <Calendar className="w-4 h-4 text-sky-600" />
             </div>
           </div>
           <div className="text-2xl font-bold text-slate-900">Rs. {(stats.received - stats.spent).toLocaleString()}</div>

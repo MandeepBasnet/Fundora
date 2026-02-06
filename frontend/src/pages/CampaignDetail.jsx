@@ -47,8 +47,6 @@ export function CampaignDetail() {
           rewards: c.rewardTiers?.map(r => ({ ...r, id: r._id })) || [], // Ensure ID mapping
           creatorName: c.creator?.name || 'Unknown Creator',
           creatorAvatar: c.creator?.profile?.avatar,
-          creatorName: c.creator?.name || 'Unknown Creator',
-          creatorAvatar: c.creator?.profile?.avatar,
           location: c.creator?.profile?.address?.city || 'Nepal', // Fallback
           isBacked: c.isBacked || false,
           userBackedAmount: c.userBackedAmount || 0
@@ -307,7 +305,16 @@ export function CampaignDetail() {
                       <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50">On Track</Badge>
                     </div>
                     
-                    <MilestoneTimeline milestones={campaign.milestones} />
+                    {/* <MilestoneTimeline milestones={campaign.milestones} /> */}
+                    <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                      <div className="bg-white p-4 rounded-full mb-4 shadow-sm border border-slate-100">
+                        <Flag className="w-8 h-8 text-slate-400" />
+                      </div>
+                      <h3 className="text-lg font-bold text-slate-900 mb-2">No Milestones Yet</h3>
+                      <p className="text-slate-500 max-w-sm mx-auto">
+                        The creator hasn't published any milestones or evidence for this campaign yet. Check back later for updates on their progress.
+                      </p>
+                    </div>
                   </div>
                 </TabsContent>
 
@@ -374,7 +381,7 @@ export function CampaignDetail() {
                   </h4>
                   <div className="flex gap-2">
                     <div className="h-8 w-12 bg-white border border-slate-200 rounded flex items-center justify-center">
-                      <span className="text-[10px] font-bold text-sky-600">eSewa</span>
+                      <span className="text-[10px] font-bold text-green-600">eSewa</span>
                     </div>
                     <div className="h-8 w-12 bg-white border border-slate-200 rounded flex items-center justify-center">
                       <span className="text-[10px] font-bold text-purple-600">Khalti</span>

@@ -6,7 +6,7 @@ export function MilestoneTimeline({ milestones }) {
   const getStatusColor = (status) => {
     switch (status) {
       case 'completed': return 'bg-green-500';
-      case 'in-progress': return 'bg-blue-500';
+      case 'in-progress': return 'bg-sky-500';
       case 'locked': return 'bg-gray-300';
       default: return 'bg-gray-300';
     }
@@ -24,7 +24,7 @@ export function MilestoneTimeline({ milestones }) {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'completed': return <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-none">Completed</Badge>;
-      case 'in-progress': return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none">In Progress</Badge>;
+      case 'in-progress': return <Badge className="bg-sky-100 text-sky-700 hover:bg-sky-200 border-none">In Progress</Badge>;
       case 'locked': return <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-none">Locked</Badge>;
       default: return null;
     }
@@ -59,7 +59,7 @@ export function MilestoneTimeline({ milestones }) {
                     {getStatusBadge(milestone.status)}
                   </div>
                   <div className="text-right">
-                    <div className="text-blue-600 font-medium">
+                    <div className="text-sky-600 font-medium">
                       Rs. {milestone.fundAmount.toLocaleString()}
                     </div>
                     <div className="text-xs text-gray-500">to be released</div>
@@ -74,7 +74,7 @@ export function MilestoneTimeline({ milestones }) {
                       <span className="text-green-700 font-medium">Completed on {new Date(milestone.completedDate).toLocaleDateString()}</span>
                     )}
                     {milestone.status === 'in-progress' && milestone.expectedDate && (
-                      <span className="text-blue-700 font-medium">Expected by {new Date(milestone.expectedDate).toLocaleDateString()}</span>
+                      <span className="text-sky-700 font-medium">Expected by {new Date(milestone.expectedDate).toLocaleDateString()}</span>
                     )}
                     {milestone.status === 'locked' && milestone.expectedDate && (
                       <span className="text-gray-500">Expected by {new Date(milestone.expectedDate).toLocaleDateString()}</span>
@@ -95,9 +95,9 @@ export function MilestoneTimeline({ milestones }) {
       ))}
 
       {/* Info Box */}
-      <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <h4 className="text-blue-900 mb-2 font-medium flex items-center gap-2"><ShieldCheck className="w-4 h-4"/> How Milestone-Based Funding Works</h4>
-        <ul className="text-sm text-blue-800 space-y-1 pl-5 list-disc">
+      <div className="mt-6 p-4 bg-sky-50 rounded-lg border border-sky-200">
+        <h4 className="text-sky-900 mb-2 font-medium flex items-center gap-2"><ShieldCheck className="w-4 h-4"/> How Milestone-Based Funding Works</h4>
+        <ul className="text-sm text-sky-800 space-y-1 pl-5 list-disc">
           <li>Funds are held securely until milestones are completed</li>
           <li>Creators submit proof for each milestone</li>
           <li>Our team verifies the submission within 48 hours</li>

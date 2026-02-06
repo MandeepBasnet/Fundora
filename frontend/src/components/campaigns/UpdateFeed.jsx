@@ -66,7 +66,7 @@ const UpdateFeed = ({ campaignId, creatorId }) => {
   return (
     <div className="mt-8">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <h3 className="text-2xl font-bold text-gray-900">
           Updates ({updates.length})
         </h3>
         {isCreator && !showForm && (
@@ -81,7 +81,7 @@ const UpdateFeed = ({ campaignId, creatorId }) => {
 
       {/* Post Update Form */}
       {showForm && (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-8">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
           <h4 className="text-xl font-semibold mb-4">New Update</h4>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -90,7 +90,7 @@ const UpdateFeed = ({ campaignId, creatorId }) => {
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({...formData, title: e.target.value})}
-                className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                className="w-full p-2 border rounded-md"
                 required
               />
             </div>
@@ -100,7 +100,7 @@ const UpdateFeed = ({ campaignId, creatorId }) => {
               <textarea
                 value={formData.content}
                 onChange={(e) => setFormData({...formData, content: e.target.value})}
-                className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                className="w-full p-2 border rounded-md"
                 rows="5"
                 required
               />
@@ -154,7 +154,7 @@ const UpdateFeed = ({ campaignId, creatorId }) => {
       {loading ? (
         <div className="text-center py-8">Loading updates...</div>
       ) : updates.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
+        <div className="text-center py-12 bg-gray-50 rounded-lg">
           <p className="text-gray-500">No updates posted yet.</p>
         </div>
       ) : (
@@ -162,7 +162,7 @@ const UpdateFeed = ({ campaignId, creatorId }) => {
           {updates.map((update, index) => (
             <div 
               key={update._id} 
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden"
+              className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
             >
               <div className="p-6">
                 <div className="flex justify-between items-start mb-4">
@@ -170,7 +170,7 @@ const UpdateFeed = ({ campaignId, creatorId }) => {
                     <span className="text-sm font-medium text-emerald-600 mb-1 block">
                       Update #{updates.length - index}
                     </span>
-                    <h4 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                    <h4 className="text-xl font-bold text-gray-900">
                       {update.title}
                     </h4>
                   </div>
@@ -179,7 +179,7 @@ const UpdateFeed = ({ campaignId, creatorId }) => {
                   </span>
                 </div>
 
-                <div className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 mb-6 whitespace-pre-wrap">
+                <div className="prose max-w-none text-gray-600 mb-6 whitespace-pre-wrap">
                   {update.content}
                 </div>
 
@@ -208,7 +208,7 @@ const UpdateFeed = ({ campaignId, creatorId }) => {
                 )}
               </div>
               
-              <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/30 border-t border-gray-100 dark:border-gray-700">
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
                 <div className="flex items-center gap-4 text-sm text-gray-500">
                   {/* Future: Add Like/Comment on updates */}
                   <span>{update.likes?.length || 0} Likes</span>

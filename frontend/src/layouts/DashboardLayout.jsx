@@ -21,7 +21,7 @@ export function DashboardLayout() {
     <Link to={to}>
       <Button 
         variant={isActive(to) ? "secondary" : "ghost"} 
-        className={`w-full justify-start ${isActive(to) ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-600'}`}
+        className={`w-full justify-start ${isActive(to) ? 'bg-sky-50 text-sky-700 font-semibold' : 'text-slate-600'}`}
       >
         <Icon className="mr-3 h-5 w-5" /> {label}
       </Button>

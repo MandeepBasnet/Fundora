@@ -22,7 +22,7 @@ export function Messages() {
         </div>
         <div className="flex-1 overflow-y-auto">
           {conversations.map((conv) => (
-            <div key={conv.id} className={`p-4 border-b border-slate-50 hover:bg-slate-50 cursor-pointer ${conv.unread ? 'bg-blue-50/50' : ''}`}>
+            <div key={conv.id} className={`p-4 border-b border-slate-50 hover:bg-slate-50 cursor-pointer ${conv.unread ? 'bg-sky-50/50' : ''}`}>
               <div className="flex justify-between items-start mb-1">
                 <h3 className={`font-medium text-sm ${conv.unread ? 'text-slate-900 font-bold' : 'text-slate-700'}`}>{conv.name}</h3>
                 <span className="text-xs text-slate-400">{conv.time}</span>
@@ -38,7 +38,7 @@ export function Messages() {
         {/* Header */}
         <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white">
           <div className="flex items-center gap-3">
-            <Avatar fallback="TF" className="bg-blue-100 text-blue-600" />
+            <Avatar fallback="TF" className="bg-sky-100 text-sky-600" />
             <div>
               <h3 className="font-bold text-slate-900">TechFarm Nepal</h3>
               <p className="text-xs text-green-600 flex items-center gap-1">
@@ -52,7 +52,7 @@ export function Messages() {
         {/* Messages */}
         <div className="flex-1 bg-slate-50/50 p-6 overflow-y-auto space-y-4">
           <div className="flex justify-end">
-            <div className="bg-blue-600 text-white p-3 rounded-2xl rounded-tr-none max-w-md shadow-sm text-sm">
+            <div className="bg-sky-600 text-white p-3 rounded-2xl rounded-tr-none max-w-md shadow-sm text-sm">
               Hi! I just backed your project. Really excited about the IoT sensors!
             </div>
           </div>
@@ -67,7 +67,7 @@ export function Messages() {
         <div className="p-4 bg-white border-t border-slate-100">
           <div className="flex gap-2">
             <Input placeholder="Type a message..." className="flex-1" />
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white px-4">
+            <Button className="bg-sky-600 hover:bg-sky-700 text-white px-4">
               <Send className="w-4 h-4" />
             </Button>
           </div>

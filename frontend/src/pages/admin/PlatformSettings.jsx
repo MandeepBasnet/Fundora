@@ -12,23 +12,23 @@ export function PlatformSettings() {
           <h1 className="text-2xl font-bold text-slate-900">Platform Settings</h1>
           <p className="text-slate-500">Configure general, payment, and security settings.</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
+        <Button className="bg-sky-600 hover:bg-sky-700">
           <Save className="w-4 h-4 mr-2" /> Save Changes
         </Button>
       </div>
 
       <Tabs defaultValue="general" className="w-full">
         <TabsList className="bg-white border border-slate-200 p-1 mb-6">
-          <TabsTrigger value="general" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
+          <TabsTrigger value="general" className="data-[state=active]:bg-sky-50 data-[state=active]:text-sky-700">
             <Globe className="w-4 h-4 mr-2" /> General
           </TabsTrigger>
-          <TabsTrigger value="payment" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
+          <TabsTrigger value="payment" className="data-[state=active]:bg-sky-50 data-[state=active]:text-sky-700">
             <CreditCard className="w-4 h-4 mr-2" /> Payment & Fees
           </TabsTrigger>
-          <TabsTrigger value="security" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
+          <TabsTrigger value="security" className="data-[state=active]:bg-sky-50 data-[state=active]:text-sky-700">
             <Shield className="w-4 h-4 mr-2" /> Security
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
+          <TabsTrigger value="notifications" className="data-[state=active]:bg-sky-50 data-[state=active]:text-sky-700">
             <Bell className="w-4 h-4 mr-2" /> Notifications
           </TabsTrigger>
         </TabsList>
@@ -107,7 +107,7 @@ export function PlatformSettings() {
             <div className="space-y-4 max-w-2xl">
               <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                  <div className="p-2 bg-sky-100 text-sky-600 rounded-lg">
                     <Smartphone className="w-5 h-5" />
                   </div>
                   <div>

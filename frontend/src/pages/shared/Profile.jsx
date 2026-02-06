@@ -149,7 +149,7 @@ export function Profile() {
                 <label className="text-sm font-medium text-slate-700">Bio</label>
                 <textarea
                   name="bio"
-                  className="flex min-h-[120px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  className="flex min-h-[120px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
                   defaultValue={user.profile?.bio || ''}
                 />
               </div>
@@ -178,7 +178,7 @@ export function Profile() {
               </div>
 
               <div className="flex justify-end">
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={loading}>
+                <Button type="submit" className="bg-sky-600 hover:bg-sky-700" disabled={loading}>
                   <Save className="w-4 h-4 mr-2" /> {loading ? 'Saving...' : 'Save Changes'}
                 </Button>
               </div>
@@ -220,7 +220,7 @@ export function Profile() {
                 {['Campaign Updates', 'New Messages', 'Marketing Emails', 'Security Alerts'].map((item) => (
                   <div key={item} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
                     <span className="text-slate-700">{item}</span>
-                    <input type="checkbox" defaultChecked className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />
+                    <input type="checkbox" defaultChecked className="w-4 h-4 text-sky-600 rounded border-gray-300 focus:ring-sky-500" />
                   </div>
                 ))}
               </div>

@@ -124,7 +124,7 @@ const CommentSection = ({ campaignId, creatorId }) => {
 
   return (
     <div className="mt-8">
-      <h3 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
+      <h3 className="text-2xl font-bold mb-6 text-gray-900">
         Comments ({comments.length})
       </h3>
 
@@ -135,7 +135,7 @@ const CommentSection = ({ campaignId, creatorId }) => {
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Ask a question or share your thoughts..."
-            className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700"
+            className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:border-sky-600 focus:ring-1 focus:ring-sky-600"
             rows="3"
             maxLength={1000}
           />
@@ -146,16 +146,16 @@ const CommentSection = ({ campaignId, creatorId }) => {
             <button
               type="submit"
               disabled={!newComment.trim()}
-              className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Post Comment
             </button>
           </div>
         </form>
       ) : (
-        <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-8 text-center">
-          <p className="text-gray-600 dark:text-gray-300">
-            Please <a href="/login" className="text-emerald-600 hover:underline">log in</a> to post comments.
+        <div className="bg-gray-50 p-4 rounded-lg mb-8 text-center">
+          <p className="text-gray-600">
+            Please <a href="/login" className="text-sky-600 hover:underline">log in</a> to post comments.
           </p>
         </div>
       )}
@@ -165,7 +165,7 @@ const CommentSection = ({ campaignId, creatorId }) => {
         <select
           value={sortOrder}
           onChange={(e) => setSortOrder(e.target.value)}
-          className="p-2 border rounded-md text-sm dark:bg-gray-800 dark:border-gray-700"
+          className="p-2 border rounded-md text-sm bg-white"
         >
           <option value="newest">Newest First</option>
           <option value="oldest">Oldest First</option>
@@ -177,7 +177,7 @@ const CommentSection = ({ campaignId, creatorId }) => {
       ) : error ? (
         <div className="text-red-500 text-center py-4">{error}</div>
       ) : threadedComments.length === 0 ? (
-        <div className="text-center py-8 text-gray-500 bg-gray-50 dark:bg-gray-800 rounded-lg">
+        <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
           No comments yet. Be the first to share your thoughts!
         </div>
       ) : (

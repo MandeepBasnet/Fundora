@@ -76,13 +76,13 @@ export function Navbar() {
             <Link to="/campaigns" className="hidden md:block text-sm font-medium text-gray-700 hover:text-sky-600 transition-colors">
               Explore
             </Link>
-            <Link to={getDashboardUrl()} className="hidden md:block text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">
+            <Link to={getDashboardUrl()} className="hidden md:block text-sm font-medium text-gray-700 hover:text-sky-600 transition-colors">
               Dashboard
             </Link>
             
             <div className="relative" ref={notifRef}>
               <button 
-                className="p-2 text-gray-700 hover:text-blue-600 transition-colors relative"
+                className="p-2 text-gray-700 hover:text-sky-600 transition-colors relative"
                 onClick={() => setIsNotifOpen(!isNotifOpen)}
               >
                 <Bell className="w-5 h-5" />
@@ -95,7 +95,7 @@ export function Navbar() {
             {authUser ? (
               <div className="relative" ref={profileRef}>
                 <button 
-                  className="flex items-center gap-2 p-2 text-gray-700 hover:text-blue-600 transition-colors"
+                  className="flex items-center gap-2 p-2 text-gray-700 hover:text-sky-600 transition-colors"
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
                 >
                   {authUser.profile?.avatar ? (
@@ -150,7 +150,7 @@ export function Navbar() {
                 )}
               </div>
             ) : (
-              <Link to="/login" className="hidden sm:flex p-2 text-gray-700 hover:text-blue-600 transition-colors">
+              <Link to="/login" className="hidden sm:flex p-2 text-gray-700 hover:text-sky-600 transition-colors">
                 <User className="w-5 h-5" />
               </Link>
             )}
