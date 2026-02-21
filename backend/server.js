@@ -8,8 +8,10 @@ const userRoutes = require('./routes/user');
 const otpRoutes = require('./routes/otp');
 const passwordRoutes = require('./routes/password');
 const campaignRoutes = require('./routes/campaigns');
+const milestoneRoutes = require('./routes/milestone');
 const adminRoutes = require('./routes/admin');
 const paymentRoutes = require('./routes/payment');
+const notificationRoutes = require('./routes/notification');
 
 const app = express();
 
@@ -26,8 +28,10 @@ app.use('/api/users', userRoutes);
 app.use('/api/otp', otpRoutes);
 app.use('/api/password', passwordRoutes);
 app.use('/api/campaigns', campaignRoutes);
+app.use('/api/campaigns', milestoneRoutes); // Milestone routes nested under campaigns
 app.use('/api/admin', adminRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Base route
 app.get('/', (req, res) => {

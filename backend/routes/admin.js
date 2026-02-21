@@ -11,9 +11,19 @@ const {
   getEditRequests,
   approveEditRequest,
   rejectEditRequest,
-  getUsers
+  getUsers,
+  // Milestone Review (FN 5.3-5.9)
+  getPendingMilestones,
+  getMilestoneForReview,
+  approveMilestone,
+  rejectMilestone,
+  requestMilestoneResubmission
 } = require('../controllers/adminController');
 const { getFinancialStats } = require('../controllers/payoutController');
+const { 
+  getAllFundReleases, 
+  updateDisbursementStatus 
+} = require('../controllers/fundReleaseController');
 const { protect, authorize } = require('../middleware/auth');
 
 // All routes require admin role
@@ -43,5 +53,16 @@ router.post('/campaigns/bulk-approve', bulkApproveCampaigns);
 
 // User Management Routes (FN 4.8)
 router.get('/users', getUsers);
+
+// Milestone Review Routes (FN 5.3-5.9)
+router.get('/milestones/pending', getPendingMilestones);
+router.get('/milestones/:campaignId/:milestoneId', getMilestoneForReview);
+router.put('/milestones/:campaignId/:milestoneId/approve', approveMilestone);
+router.put('/milestones/:campaignId/:milestoneId/reject', rejectMilestone);
+router.put('/milestones/:campaignId/:milestoneId/resubmit', requestMilestoneResubmission);
+
+// Fund Release Routes (FN 5.5, 5.10)
+router.get('/fund-releases', getAllFundReleases);
+router.put('/fund-releases/:id/status', updateDisbursementStatus);
 
 module.exports = router;

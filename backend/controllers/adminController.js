@@ -1,5 +1,8 @@
 const Campaign = require('../models/Campaign');
 const User = require('../models/User');
+const FundRelease = require('../models/FundRelease');
+const Notification = require('../models/Notification');
+const Transaction = require('../models/Transaction');
 const cloudinary = require('../config/cloudinary');
 
 // Predefined rejection reasons
@@ -361,7 +364,8 @@ const getAdminStats = async (req, res) => {
       activeCampaigns,
       totalUsers,
       totalCreators,
-      totalFunding
+      totalFunding,
+      pendingMilestones
     ] = await Promise.all([
       Campaign.countDocuments({ status: 'pending' }),
       Campaign.countDocuments({ status: 'active' }),
@@ -370,7 +374,8 @@ const getAdminStats = async (req, res) => {
       Campaign.aggregate([
         { $match: { status: { $in: ['active', 'completed'] } } },
         { $group: { _id: null, total: { $sum: '$currentAmount' } } }
-      ])
+      ]),
+      Campaign.countDocuments({ 'milestones.status': 'submitted' })
     ]);
 
     res.json({
@@ -378,7 +383,8 @@ const getAdminStats = async (req, res) => {
       activeCampaigns,
       totalUsers,
       totalCreators,
-      totalFunding: totalFunding[0]?.total || 0
+      totalFunding: totalFunding[0]?.total || 0,
+      pendingMilestones
     });
   } catch (error) {
     console.error('Get admin stats error:', error);
@@ -578,6 +584,466 @@ const rejectEditRequest = async (req, res) => {
     res.status(500).json({ message: 'Server error rejecting edit' });
   }
 };
+// ========================================
+// MILESTONE REVIEW FUNCTIONS (FN 5.3-5.9)
+// ========================================
+
+// Milestone rejection categories
+const MILESTONE_REJECTION_CATEGORIES = {
+  insufficient_proof: 'Insufficient Proof/Evidence',
+  poor_quality: 'Poor Quality Deliverables',
+  incomplete_work: 'Incomplete Work',
+  misleading: 'Misleading or Inaccurate Claims',
+  other: 'Other'
+};
+
+// @desc    Get all pending milestone submissions (FN 5.3)
+// @route   GET /api/admin/milestones/pending
+// @access  Private (Admin only)
+const getPendingMilestones = async (req, res) => {
+  try {
+    // Find campaigns that have milestones with 'submitted' status
+    const campaigns = await Campaign.find({
+      'milestones.status': 'submitted'
+    })
+    .populate('creator', 'name email profile.avatar')
+    .select('title fundingGoal currentAmount milestones coverImage category released_amount disbursementMethod')
+    .sort({ 'milestones.submittedAt': 1 }); // Oldest first
+
+    // Extract submitted milestones with campaign context
+    const pendingSubmissions = [];
+    campaigns.forEach(campaign => {
+      campaign.milestones
+        .filter(m => m.status === 'submitted')
+        .forEach(milestone => {
+          pendingSubmissions.push({
+            campaign: {
+              _id: campaign._id,
+              title: campaign.title,
+              fundingGoal: campaign.fundingGoal,
+              currentAmount: campaign.currentAmount,
+              coverImage: campaign.coverImage,
+              category: campaign.category,
+              released_amount: campaign.released_amount,
+              disbursementMethod: campaign.disbursementMethod,
+              creator: campaign.creator
+            },
+            milestone: {
+              ...milestone.toObject(),
+              fundAmount: Math.round(campaign.currentAmount * (milestone.percentage / 100)),
+              releaseAmount: Math.round(campaign.currentAmount * (milestone.percentage / 100) * 0.95) // After 5% fee
+            }
+          });
+        });
+    });
+
+    // Sort by submission date
+    pendingSubmissions.sort((a, b) => 
+      new Date(a.milestone.submittedAt) - new Date(b.milestone.submittedAt)
+    );
+
+    res.json({
+      submissions: pendingSubmissions,
+      total: pendingSubmissions.length,
+      rejectionCategories: MILESTONE_REJECTION_CATEGORIES
+    });
+  } catch (error) {
+    console.error('Get pending milestones error:', error);
+    res.status(500).json({ message: 'Server error fetching pending milestones' });
+  }
+};
+
+// @desc    Get milestone details for review (FN 5.3)
+// @route   GET /api/admin/milestones/:campaignId/:milestoneId
+// @access  Private (Admin only)
+const getMilestoneForReview = async (req, res) => {
+  try {
+    const { campaignId, milestoneId } = req.params;
+
+    const campaign = await Campaign.findById(campaignId)
+      .populate('creator', 'name email profile');
+
+    if (!campaign) {
+      return res.status(404).json({ message: 'Campaign not found' });
+    }
+
+    const milestone = campaign.milestones.id(milestoneId);
+    if (!milestone) {
+      return res.status(404).json({ message: 'Milestone not found' });
+    }
+
+    // Get backer count for this campaign
+    const backerCount = await Transaction.countDocuments({
+      campaign: campaignId,
+      status: 'completed'
+    });
+
+    const milestoneData = milestone.toObject();
+    milestoneData.fundAmount = Math.round(campaign.currentAmount * (milestone.percentage / 100));
+    milestoneData.platformFee = Math.round(milestoneData.fundAmount * 0.05);
+    milestoneData.releaseAmount = milestoneData.fundAmount - milestoneData.platformFee;
+
+    res.json({
+      campaign: {
+        _id: campaign._id,
+        title: campaign.title,
+        fundingGoal: campaign.fundingGoal,
+        currentAmount: campaign.currentAmount,
+        released_amount: campaign.released_amount,
+        status: campaign.status,
+        creator: campaign.creator,
+        backerCount,
+        disbursementMethod: campaign.disbursementMethod,
+        milestones: campaign.milestones.map(m => ({
+          _id: m._id,
+          title: m.title,
+          order: m.order,
+          status: m.status,
+          percentage: m.percentage
+        }))
+      },
+      milestone: milestoneData,
+      rejectionCategories: MILESTONE_REJECTION_CATEGORIES
+    });
+  } catch (error) {
+    console.error('Get milestone for review error:', error);
+    res.status(500).json({ message: 'Server error fetching milestone for review' });
+  }
+};
+
+// @desc    Approve a milestone and trigger fund release (FN 5.3, 5.4, 5.5)
+// @route   PUT /api/admin/milestones/:campaignId/:milestoneId/approve
+// @access  Private (Admin only)
+const approveMilestone = async (req, res) => {
+  try {
+    const { campaignId, milestoneId } = req.params;
+
+    const campaign = await Campaign.findById(campaignId)
+      .populate('creator', 'name email');
+
+    if (!campaign) {
+      return res.status(404).json({ message: 'Campaign not found' });
+    }
+
+    const milestone = campaign.milestones.id(milestoneId);
+    if (!milestone) {
+      return res.status(404).json({ message: 'Milestone not found' });
+    }
+
+    if (milestone.status !== 'submitted') {
+      return res.status(400).json({ message: `Cannot approve milestone with status: ${milestone.status}` });
+    }
+
+    // -- FUND RELEASE CALCULATION (FN 5.4) --
+    const grossAmount = Math.round(campaign.currentAmount * (milestone.percentage / 100));
+    const platformFee = Math.round(grossAmount * 0.05); // 5% platform fee
+    const releaseAmount = grossAmount - platformFee;
+
+    // Validate sufficient unreleased funds
+    const maxReleasable = campaign.currentAmount - campaign.released_amount;
+    if (releaseAmount > maxReleasable) {
+      return res.status(400).json({ 
+        message: 'Insufficient unreleased funds for this milestone',
+        details: { releaseAmount, available: maxReleasable }
+      });
+    }
+
+    // Update milestone status
+    milestone.status = 'approved';
+    milestone.reviewedAt = new Date();
+    milestone.reviewedBy = req.user._id;
+    milestone.completedAt = new Date();
+
+    // Update campaign released_amount
+    campaign.released_amount = (campaign.released_amount || 0) + releaseAmount;
+
+    // Check if all milestones are approved
+    const allApproved = campaign.milestones.every(
+      m => m.status === 'approved' || m.status === 'completed'
+    );
+    if (allApproved) {
+      campaign.status = 'completed';
+    }
+
+    await campaign.save();
+
+    // Create FundRelease record (FN 5.5)
+    const fundRelease = await FundRelease.create({
+      campaign: campaign._id,
+      milestoneId: milestone._id,
+      milestoneOrder: milestone.order,
+      milestoneTitle: milestone.title,
+      grossAmount,
+      platformFee,
+      amount: releaseAmount,
+      milestonePercentage: milestone.percentage,
+      approvedBy: req.user._id,
+      disbursementMethod: campaign.disbursementMethod || 'esewa',
+      disbursementStatus: 'pending',
+      status: 'approved'
+    });
+
+    // -- NOTIFICATIONS --
+    // Notify creator (FN 5.6)
+    await Notification.create({
+      recipient: campaign.creator._id,
+      type: 'milestone_approved',
+      title: 'Milestone Approved! 🎉',
+      message: `Your milestone "${milestone.title}" for campaign "${campaign.title}" has been approved. NPR ${releaseAmount.toLocaleString()} will be released to your account.`,
+      campaign: campaign._id,
+      milestoneId: milestone._id,
+      metadata: {
+        milestoneTitle: milestone.title,
+        releaseAmount,
+        grossAmount,
+        platformFee,
+        fundReleaseId: fundRelease._id
+      }
+    });
+
+    // Notify backers (FN 5.7)
+    const backerTransactions = await Transaction.find({
+      campaign: campaign._id,
+      status: 'completed'
+    }).distinct('user');
+
+    if (backerTransactions.length > 0) {
+      const backerNotifications = backerTransactions.map(backerId => ({
+        recipient: backerId,
+        type: 'backer_milestone_update',
+        title: 'Project Milestone Achieved!',
+        message: `"${campaign.title}" has completed milestone "${milestone.title}". Funds of NPR ${releaseAmount.toLocaleString()} have been released to the creator.`,
+        campaign: campaign._id,
+        milestoneId: milestone._id,
+        metadata: {
+          milestoneTitle: milestone.title,
+          milestoneOrder: milestone.order,
+          campaignTitle: campaign.title
+        }
+      }));
+      await Notification.insertMany(backerNotifications);
+    }
+
+    // Send email to creator
+    try {
+      await sendMilestoneApprovedEmail(campaign.creator.email, campaign, milestone, releaseAmount);
+    } catch (emailErr) {
+      console.error('Failed to send milestone approved email:', emailErr);
+    }
+
+    // If all milestones completed, notify
+    if (allApproved) {
+      await Notification.create({
+        recipient: campaign.creator._id,
+        type: 'project_completed',
+        title: 'Project Completed! 🏆',
+        message: `All milestones for "${campaign.title}" have been completed. Congratulations!`,
+        campaign: campaign._id
+      });
+    }
+
+    res.json({
+      message: 'Milestone approved and fund release created',
+      milestone,
+      fundRelease: {
+        grossAmount,
+        platformFee,
+        releaseAmount,
+        disbursementMethod: fundRelease.disbursementMethod
+      }
+    });
+  } catch (error) {
+    console.error('Approve milestone error:', error);
+    res.status(500).json({ message: 'Server error approving milestone' });
+  }
+};
+
+// @desc    Reject a milestone (FN 5.9)
+// @route   PUT /api/admin/milestones/:campaignId/:milestoneId/reject
+// @access  Private (Admin only)
+const rejectMilestone = async (req, res) => {
+  try {
+    const { campaignId, milestoneId } = req.params;
+    const { rejectionCategory, rejectionReason } = req.body;
+
+    if (!rejectionReason) {
+      return res.status(400).json({ message: 'Rejection reason is required' });
+    }
+
+    const campaign = await Campaign.findById(campaignId)
+      .populate('creator', 'name email');
+
+    if (!campaign) {
+      return res.status(404).json({ message: 'Campaign not found' });
+    }
+
+    const milestone = campaign.milestones.id(milestoneId);
+    if (!milestone) {
+      return res.status(404).json({ message: 'Milestone not found' });
+    }
+
+    if (milestone.status !== 'submitted') {
+      return res.status(400).json({ message: `Cannot reject milestone with status: ${milestone.status}` });
+    }
+
+    // Update milestone
+    milestone.status = 'rejected';
+    milestone.reviewedAt = new Date();
+    milestone.reviewedBy = req.user._id;
+    milestone.rejectionCategory = rejectionCategory || 'other';
+    milestone.rejectionReason = rejectionReason;
+    milestone.appealDeadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+    await campaign.save();
+
+    // Notify creator
+    await Notification.create({
+      recipient: campaign.creator._id,
+      type: 'milestone_rejected',
+      title: 'Milestone Rejected',
+      message: `Your milestone "${milestone.title}" for "${campaign.title}" was rejected. Reason: ${rejectionReason}. You can appeal within 7 days.`,
+      campaign: campaign._id,
+      milestoneId: milestone._id,
+      metadata: {
+        rejectionCategory,
+        rejectionReason,
+        appealDeadline: milestone.appealDeadline
+      }
+    });
+
+    // Send email
+    try {
+      await sendMilestoneRejectedEmail(campaign.creator.email, campaign, milestone, rejectionReason);
+    } catch (emailErr) {
+      console.error('Failed to send milestone rejected email:', emailErr);
+    }
+
+    res.json({
+      message: 'Milestone rejected and creator notified',
+      milestone
+    });
+  } catch (error) {
+    console.error('Reject milestone error:', error);
+    res.status(500).json({ message: 'Server error rejecting milestone' });
+  }
+};
+
+// @desc    Request milestone resubmission (FN 5.9)
+// @route   PUT /api/admin/milestones/:campaignId/:milestoneId/resubmit
+// @access  Private (Admin only)
+const requestMilestoneResubmission = async (req, res) => {
+  try {
+    const { campaignId, milestoneId } = req.params;
+    const { feedback } = req.body;
+
+    if (!feedback) {
+      return res.status(400).json({ message: 'Feedback for resubmission is required' });
+    }
+
+    const campaign = await Campaign.findById(campaignId)
+      .populate('creator', 'name email');
+
+    if (!campaign) {
+      return res.status(404).json({ message: 'Campaign not found' });
+    }
+
+    const milestone = campaign.milestones.id(milestoneId);
+    if (!milestone) {
+      return res.status(404).json({ message: 'Milestone not found' });
+    }
+
+    if (milestone.status !== 'submitted') {
+      return res.status(400).json({ message: `Cannot request resubmission for milestone with status: ${milestone.status}` });
+    }
+
+    // Update milestone
+    milestone.status = 'resubmission-required';
+    milestone.reviewedAt = new Date();
+    milestone.reviewedBy = req.user._id;
+    milestone.resubmissionFeedback = feedback;
+
+    await campaign.save();
+
+    // Notify creator
+    await Notification.create({
+      recipient: campaign.creator._id,
+      type: 'resubmission_required',
+      title: 'Milestone Resubmission Required',
+      message: `Your milestone "${milestone.title}" for "${campaign.title}" needs changes. Feedback: ${feedback}`,
+      campaign: campaign._id,
+      milestoneId: milestone._id,
+      metadata: {
+        feedback,
+        milestoneTitle: milestone.title
+      }
+    });
+
+    res.json({
+      message: 'Resubmission requested and creator notified',
+      milestone
+    });
+  } catch (error) {
+    console.error('Request resubmission error:', error);
+    res.status(500).json({ message: 'Server error requesting resubmission' });
+  }
+};
+
+// Email helper for milestone approval
+const sendMilestoneApprovedEmail = async (email, campaign, milestone, releaseAmount) => {
+  const mailOptions = {
+    from: `"Fundora" <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: `✅ Milestone Approved - "${milestone.title}"`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #10b981;">Milestone Approved!</h1>
+        <p>Your milestone <strong>"${milestone.title}"</strong> for campaign <strong>"${campaign.title}"</strong> has been approved.</p>
+        
+        <div style="background: #f0fdf4; border-radius: 8px; padding: 20px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Fund Release Details</h3>
+          <p><strong>Release Amount:</strong> NPR ${releaseAmount.toLocaleString()}</p>
+          <p><strong>Platform Fee (5%):</strong> NPR ${Math.round(releaseAmount / 0.95 * 0.05).toLocaleString()}</p>
+          <p><strong>Estimated Transfer:</strong> 3-5 business days</p>
+        </div>
+        
+        <p>The funds will be transferred to your registered payment method.</p>
+        
+        <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">The Fundora Team</p>
+      </div>
+    `
+  };
+  await getTransporter().sendMail(mailOptions);
+};
+
+// Email helper for milestone rejection
+const sendMilestoneRejectedEmail = async (email, campaign, milestone, reason) => {
+  const mailOptions = {
+    from: `"Fundora" <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: `Update on milestone "${milestone.title}"`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #374151;">Milestone Review Update</h1>
+        <p>We've reviewed your milestone <strong>"${milestone.title}"</strong> for campaign <strong>"${campaign.title}"</strong>.</p>
+        
+        <div style="background: #fef2f2; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #ef4444;">
+          <h3 style="margin-top: 0; color: #dc2626;">Reason for Rejection</h3>
+          <p>${reason}</p>
+        </div>
+        
+        <h3>What You Can Do</h3>
+        <ul>
+          <li>Review the feedback above</li>
+          <li>Make necessary improvements to your proof</li>
+          <li>Resubmit within 7 days to appeal</li>
+        </ul>
+        
+        <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">The Fundora Team</p>
+      </div>
+    `
+  };
+  await getTransporter().sendMail(mailOptions);
+};
 
 module.exports = {
   getPendingCampaigns,
@@ -591,5 +1057,12 @@ module.exports = {
   approveEditRequest,
   rejectEditRequest,
   getUsers,
-  REJECTION_REASONS
+  REJECTION_REASONS,
+  // Milestone Review (FN 5.3-5.9)
+  getPendingMilestones,
+  getMilestoneForReview,
+  approveMilestone,
+  rejectMilestone,
+  requestMilestoneResubmission,
+  MILESTONE_REJECTION_CATEGORIES
 };

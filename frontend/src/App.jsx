@@ -23,6 +23,7 @@ import { SupportedProjects } from './pages/backer/SupportedProjects'
 import { Overview } from './pages/creator/Overview'
 import { MyCampaigns } from './pages/creator/MyCampaigns'
 import { Finances } from './pages/creator/Finances'
+import { MilestoneSubmission } from './pages/creator/MilestoneSubmission'
 
 // Admin pages
 import { AdminDashboard } from './pages/admin/AdminDashboard'
@@ -31,6 +32,7 @@ import { UserManagement } from './pages/admin/UserManagement'
 import { Moderation } from './pages/admin/Moderation'
 import { PlatformSettings } from './pages/admin/PlatformSettings'
 import FinancialReports from './pages/admin/FinancialReports'
+import { MilestoneReview } from './pages/admin/MilestoneReview'
 
 // Shared pages
 import { Messages } from './pages/shared/Messages'
@@ -78,6 +80,7 @@ function App() {
               <Route path="users" element={<UserManagement />} />
               <Route path="moderation" element={<Moderation />} />
               <Route path="financial-reports" element={<FinancialReports />} />
+              <Route path="milestone-review" element={<MilestoneReview />} />
               <Route path="settings" element={<PlatformSettings />} />
             </Route>
           </Route>
@@ -98,6 +101,7 @@ function App() {
             <Route path="/creator" element={<CreatorLayout />}>
               <Route index element={<Overview />} />
               <Route path="campaigns" element={<MyCampaigns />} />
+              <Route path="milestones" element={<MilestoneSubmission />} />
               <Route path="finances" element={<Finances />} />
               <Route path="messages" element={<Messages />} />
               <Route path="transactions" element={<Transactions />} />

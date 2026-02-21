@@ -9,8 +9,6 @@ export function MyCampaigns() {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showMilestoneModal, setShowMilestoneModal] = useState(false);
-  const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,10 +44,6 @@ export function MyCampaigns() {
     }
   };
 
-  const handleOpenMilestoneModal = (campaign) => {
-    setSelectedCampaign(campaign);
-    setShowMilestoneModal(true);
-  };
 
   const handleEditCampaign = (campaignId) => {
     navigate(`/edit-campaign/${campaignId}`);
@@ -246,7 +240,7 @@ export function MyCampaigns() {
                       variant="outline" 
                       size="sm" 
                       className="justify-start gap-2 text-sky-600 border-sky-200 hover:bg-sky-50"
-                      onClick={() => handleOpenMilestoneModal(campaign)}
+                      onClick={() => navigate('/creator/milestones')}
                     >
                       <CheckCircle2 className="h-4 w-4" /> Submit Proof
                     </Button>
@@ -307,47 +301,6 @@ export function MyCampaigns() {
         );
       })()}
 
-      {/* Milestone Submission Modal */}
-      {showMilestoneModal && selectedCampaign && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <Card className="w-full max-w-lg bg-white shadow-2xl overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-slate-900">Submit Milestone Proof</h2>
-              <button onClick={() => setShowMilestoneModal(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="p-6 space-y-6">
-              <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-800 mb-4">
-                <p>Campaign: <strong>{selectedCampaign.title}</strong></p>
-              </div>
-
-              {selectedCampaign.milestones?.map((milestone, idx) => (
-                milestone.status === 'pending' && (
-                  <div key={idx} className="p-4 border rounded-lg">
-                    <p className="font-medium">{milestone.title}</p>
-                    <p className="text-sm text-slate-500">{milestone.percentage}% of funds</p>
-                  </div>
-                )
-              ))}
-
-              <div className="space-y-4">
-                <label className="block text-sm font-medium text-slate-700">Progress Description</label>
-                <textarea 
-                  className="flex min-h-[100px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                  placeholder="Describe what has been achieved..."
-                />
-              </div>
-            </div>
-
-            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setShowMilestoneModal(false)}>Cancel</Button>
-              <Button className="bg-sky-600 hover:bg-sky-700 text-white">Submit for Review</Button>
-            </div>
-          </Card>
-        </div>
-      )}
     </div>
   );
 }

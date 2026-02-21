@@ -305,16 +305,19 @@ export function CampaignDetail() {
                       <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50">On Track</Badge>
                     </div>
                     
-                    {/* <MilestoneTimeline milestones={campaign.milestones} /> */}
-                    <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-                      <div className="bg-white p-4 rounded-full mb-4 shadow-sm border border-slate-100">
-                        <Flag className="w-8 h-8 text-slate-400" />
+                    {campaign.milestones && campaign.milestones.length > 0 ? (
+                      <MilestoneTimeline milestones={campaign.milestones} />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                        <div className="bg-white p-4 rounded-full mb-4 shadow-sm border border-slate-100">
+                          <Flag className="w-8 h-8 text-slate-400" />
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-900 mb-2">No Milestones Yet</h3>
+                        <p className="text-slate-500 max-w-sm mx-auto">
+                          The creator hasn't published any milestones or evidence for this campaign yet. Check back later for updates on their progress.
+                        </p>
                       </div>
-                      <h3 className="text-lg font-bold text-slate-900 mb-2">No Milestones Yet</h3>
-                      <p className="text-slate-500 max-w-sm mx-auto">
-                        The creator hasn't published any milestones or evidence for this campaign yet. Check back later for updates on their progress.
-                      </p>
-                    </div>
+                    )}
                   </div>
                 </TabsContent>
 

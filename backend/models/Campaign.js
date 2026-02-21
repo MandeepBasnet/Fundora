@@ -21,7 +21,16 @@ const FUNDING_TYPES = ['reward-based', 'donation-based', 'milestone-based'];
 const CAMPAIGN_STATUSES = ['draft', 'pending', 'active', 'completed', 'cancelled', 'rejected'];
 
 // Milestone statuses (for milestone-based campaigns)
-const MILESTONE_STATUSES = ['pending', 'in-progress', 'completed', 'verified'];
+const MILESTONE_STATUSES = [
+  'pending',           // Not yet started
+  'in-progress',       // Creator working on it
+  'submitted',         // Proof submitted by creator
+  'under-review',      // Admin reviewing proof
+  'approved',          // Admin approved, funds released
+  'rejected',          // Admin rejected
+  'resubmission-required', // Admin requested changes
+  'completed'          // Fully completed
+];
 
 // Reward Tier Schema (FN 2.5)
 const rewardTierSchema = new mongoose.Schema({
@@ -60,7 +69,16 @@ const rewardTierSchema = new mongoose.Schema({
   }
 }, { _id: true });
 
-// Milestone Schema (FN 2.6)
+// Proof File Schema (FN 5.2)
+const proofFileSchema = new mongoose.Schema({
+  url: { type: String, required: true },
+  publicId: { type: String },
+  caption: { type: String, maxlength: 200 },
+  fileType: { type: String, enum: ['image', 'video', 'pdf', 'document'] },
+  thumbnailUrl: { type: String }
+}, { _id: true });
+
+// Milestone Schema (FN 2.6, FN 5.1-5.9)
 const milestoneSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -95,6 +113,47 @@ const milestoneSchema = new mongoose.Schema({
   completedAt: {
     type: Date
   },
+
+  // Proof Submission Fields (FN 5.1, 5.2)
+  proofFiles: [proofFileSchema],
+  progressDescription: {
+    type: String,
+    maxlength: [2000, 'Progress description cannot exceed 2000 characters']
+  },
+  nextMilestoneEstimate: {
+    type: Date
+  },
+  submittedAt: {
+    type: Date
+  },
+
+  // Review Fields (FN 5.3, 5.9)
+  reviewedAt: {
+    type: Date
+  },
+  reviewedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  rejectionReason: {
+    type: String
+  },
+  rejectionCategory: {
+    type: String,
+    enum: ['insufficient_proof', 'poor_quality', 'incomplete_work', 'misleading', 'other', null]
+  },
+  appealDeadline: {
+    type: Date
+  },
+  resubmissionCount: {
+    type: Number,
+    default: 0
+  },
+  resubmissionFeedback: {
+    type: String
+  },
+
+  // Legacy field (kept for backward compatibility)
   proofSubmission: {
     url: String,
     publicId: String,
@@ -257,6 +316,26 @@ const campaignSchema = new mongoose.Schema({
   },
   deletionRequestedAt: {
     type: Date
+  },
+
+  // Fund Release Tracking (FN 5.5)
+  released_amount: {
+    type: Number,
+    default: 0
+  },
+
+  // Disbursement Preferences (FN 5.10)
+  disbursementMethod: {
+    type: String,
+    enum: ['bank_transfer', 'esewa', 'khalti', null],
+    default: null
+  },
+  disbursementDetails: {
+    accountName: String,
+    accountNumber: String,
+    bankName: String,
+    esewaId: String,
+    khaltiId: String
   }
 }, {
   timestamps: true

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Flag, Settings, LogOut, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, Users, Flag, Settings, LogOut, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { Button } from '../components/ui';
 import { FundoraLogo } from '../components/FundoraLogo';
 import { useAuth } from '../context/AuthContext';
@@ -37,6 +37,7 @@ export function AdminLayout() {
           <NavItem to="/admin/campaigns" icon={ShieldAlert} label="Campaign Queue" />
           <NavItem to="/admin/users" icon={Users} label="User Management" />
           <NavItem to="/admin/moderation" icon={Flag} label="Moderation" />
+          <NavItem to="/admin/milestone-review" icon={CheckCircle2} label="Milestone Review" />
           <NavItem to="/admin/financial-reports" icon={LayoutDashboard} label="Financial Reports" />
           <NavItem to="/admin/settings" icon={Settings} label="Platform Settings" />
         </nav>
