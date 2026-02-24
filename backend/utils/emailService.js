@@ -190,9 +190,85 @@ const sendPasswordResetEmail = async (email, otp, name) => {
   }
 };
 
+// --- FLAGGING & MODERATION EMAILS ---
+
+const sendFlagReceivedEmail = async (email, campaignTitle) => {
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || `Fundora <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: 'Report Received - Fundora',
+    html: `
+      <h2>Fundora Moderation Team</h2>
+      <p>Thank you for your report regarding the campaign <strong>"${campaignTitle}"</strong>.</p>
+      <p>We've received your flag and it is currently under review by our moderation team. We'll notify you once a decision is made.</p>
+      <br>
+      <p>Regards,<br>Fundora Trust & Safety</p>
+    `
+  };
+  return transporter.sendMail(mailOptions);
+};
+
+const sendFlagResolutionEmail = async (email, campaignTitle, outcome, explanation) => {
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || `Fundora <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: `Report Update: ${outcome} - Fundora`,
+    html: `
+      <h2>Fundora Moderation Team</h2>
+      <p>We've reviewed your report regarding the campaign <strong>"${campaignTitle}"</strong>.</p>
+      <p><strong>Outcome:</strong> ${outcome}</p>
+      <p><strong>Reason/Details:</strong> ${explanation || 'Our moderation team has taken appropriate action based on our community guidelines.'}</p>
+      <br>
+      <p>Thank you for keeping our community safe.</p>
+      <p>Regards,<br>Fundora Trust & Safety</p>
+    `
+  };
+  return transporter.sendMail(mailOptions);
+};
+
+const sendCreatorWarningEmail = async (email, warningLevel, explanation) => {
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || `Fundora <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: `Important Notice Regarding Your Campaign - ${warningLevel}`,
+    html: `
+      <h2>Fundora Trust & Safety</h2>
+      <p>This is a serious notice regarding your recent activity on Fundora.</p>
+      <p><strong>Action Taken:</strong> ${warningLevel}</p>
+      <p><strong>Details:</strong> ${explanation}</p>
+      <p>Please ensure your future actions comply with our terms of service to avoid further penalties, which may include permanent suspension.</p>
+      <br>
+      <p>Regards,<br>Fundora Moderation Team</p>
+    `
+  };
+  return transporter.sendMail(mailOptions);
+};
+
+const sendCampaignTerminatedEmail = async (email, campaignTitle, reason) => {
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || `Fundora <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: `URGENT: Your Campaign "${campaignTitle}" has been Terminated`,
+    html: `
+      <h2>Account Action Notice</h2>
+      <p>We are writing to inform you that your campaign <strong>"${campaignTitle}"</strong> has been terminated due to serious violations of our Terms of Service.</p>
+      <p><strong>Reason for Termination:</strong> ${reason}</p>
+      <p>All associated transactions have been flagged, and automatic refunds for your backers will be initiated within 24 hours.</p>
+      <p>Your account is currently suspended pending a full investigation.</p>
+      <br>
+      <p>Fundora Legal and Trust & Safety Team</p>
+    `
+  };
+  return transporter.sendMail(mailOptions);
+};
+
 module.exports = {
   generateOTP,
   sendOTPEmail,
   sendPasswordResetEmail,
-  verifyEmailConnection
+  verifyEmailConnection,
+  sendFlagReceivedEmail,
+  sendFlagResolutionEmail,
+  sendCreatorWarningEmail,
+  sendCampaignTerminatedEmail
 };

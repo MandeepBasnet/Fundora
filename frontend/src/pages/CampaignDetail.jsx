@@ -9,6 +9,7 @@ import { MilestoneTimeline } from '../components/MilestoneTimeline';
 import { RewardTier } from '../components/RewardTier';
 import CommentSection from '../components/campaigns/CommentSection';
 import UpdateFeed from '../components/campaigns/UpdateFeed';
+import { ReportCampaignModal } from '../components/campaigns/ReportCampaignModal';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -477,51 +478,11 @@ export function CampaignDetail() {
         </div>
       )}
 
-      {/* Report Modal */}
-      {showReportModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <Card className="w-full max-w-lg bg-white shadow-2xl overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-red-600 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5" /> Report Project
-              </h2>
-              <button onClick={() => setShowReportModal(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="p-6 space-y-6">
-              <p className="text-sm text-slate-600">
-                Please let us know why you are reporting this project. Our moderation team will review your report within 24 hours.
-              </p>
-
-              <div className="space-y-4">
-                <label className="block text-sm font-medium text-slate-700">Reason</label>
-                <select className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
-                  <option>Fraud or Scam</option>
-                  <option>Inappropriate Content</option>
-                  <option>Copyright Violation</option>
-                  <option>Misleading Information</option>
-                  <option>Other</option>
-                </select>
-              </div>
-
-              <div className="space-y-4">
-                <label className="block text-sm font-medium text-slate-700">Description</label>
-                <textarea 
-                  className="flex min-h-[100px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                  placeholder="Please provide more details..."
-                />
-              </div>
-            </div>
-
-            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setShowReportModal(false)}>Cancel</Button>
-              <Button className="bg-red-600 hover:bg-red-700 text-white">Submit Report</Button>
-            </div>
-          </Card>
-        </div>
-      )}
+      <ReportCampaignModal 
+        isOpen={showReportModal} 
+        onClose={() => setShowReportModal(false)} 
+        campaignId={campaign.id} 
+      />
     </div>
   );
 }

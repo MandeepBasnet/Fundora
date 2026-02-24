@@ -18,7 +18,7 @@ const CAMPAIGN_CATEGORIES = [
 const FUNDING_TYPES = ['reward-based', 'donation-based', 'milestone-based'];
 
 // Campaign statuses
-const CAMPAIGN_STATUSES = ['draft', 'pending', 'active', 'completed', 'cancelled', 'rejected'];
+const CAMPAIGN_STATUSES = ['draft', 'pending', 'active', 'completed', 'cancelled', 'rejected', 'terminated', 'suspended'];
 
 // Milestone statuses (for milestone-based campaigns)
 const MILESTONE_STATUSES = [
@@ -301,6 +301,10 @@ const campaignSchema = new mongoose.Schema({
   },
   rejectionReason: {
     type: String
+  },
+  activeFlagCount: {
+    type: Number,
+    default: 0
   },
   
   // Edit Request (FN 2.10)

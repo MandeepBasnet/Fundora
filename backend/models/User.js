@@ -48,7 +48,22 @@ const userSchema = new mongoose.Schema({
     otpExpiry: Date,
     token: String
   },
-  refreshToken: [String]
+  refreshToken: [String],
+  warningCount: {
+    type: Number,
+    default: 0
+  },
+  falseFlagCount: {
+    type: Number,
+    default: 0
+  },
+  flaggingRestrictedUntil: {
+    type: Date
+  },
+  isBanned: {
+    type: Boolean,
+    default: false
+  }
 }, {
   timestamps: true
 });

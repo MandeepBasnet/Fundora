@@ -12,6 +12,7 @@ const milestoneRoutes = require('./routes/milestone');
 const adminRoutes = require('./routes/admin');
 const paymentRoutes = require('./routes/payment');
 const notificationRoutes = require('./routes/notification');
+const flagRoutes = require('./routes/flagRoutes');
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.use('/api/campaigns', milestoneRoutes); // Milestone routes nested under cam
 app.use('/api/admin', adminRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/flags', flagRoutes);
 
 // Base route
 app.get('/', (req, res) => {
