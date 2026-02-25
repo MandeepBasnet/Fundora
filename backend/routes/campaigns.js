@@ -19,7 +19,7 @@ const {
   createCampaignUpdate,
   getSupportedCampaigns
 } = require('../controllers/campaignController');
-const { protect, optionalAuth } = require('../middleware/auth');
+const { protect, authorize, optionalAuth } = require('../middleware/auth');
 const upload = require('../middleware/uploadMiddleware');
 
 // Public routes
@@ -29,16 +29,16 @@ router.get('/', optionalAuth, getAllCampaigns);
 // Protected routes - must be before /:id to avoid conflicts
 router.get('/my', protect, getMyCampaigns);
 router.get('/supported', protect, getSupportedCampaigns);
-router.post('/', protect, createCampaign);
+router.post('/', protect, authorize('creator', 'admin'), createCampaign);
 
 // Campaign-specific routes
 router.get('/:id', optionalAuth, getCampaignById);
-router.put('/:id', protect, updateCampaign);
-router.delete('/:id', protect, deleteCampaign);
+router.put('/:id', protect, authorize('creator', 'admin'), updateCampaign);
+router.delete('/:id', protect, authorize('creator', 'admin'), deleteCampaign);
 
 // Campaign actions
-router.put('/:id/submit', protect, submitCampaign);
-router.put('/:id/cancel', protect, requestCancellation);
+router.put('/:id/submit', protect, authorize('creator', 'admin'), submitCampaign);
+router.put('/:id/cancel', protect, authorize('creator', 'admin'), requestCancellation);
 
 // Media upload routes
 router.post('/:id/media', protect, upload.single('media'), addCampaignMedia);

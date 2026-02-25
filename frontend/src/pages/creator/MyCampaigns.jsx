@@ -184,6 +184,11 @@ export function MyCampaigns() {
                           <Badge variant="outline" className={getStatusColor(campaign.status)}>
                             {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
                           </Badge>
+                          {campaign.backerCount !== undefined && (
+                             <Badge variant="outline" className="bg-slate-100 text-slate-700">
+                               {campaign.backerCount} Backers ({campaign.transactionCount || 0} Txns)
+                             </Badge>
+                          )}
                         </div>
                         <p className="text-sm text-slate-500">
                           {campaign.category} • {campaign.fundingType?.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Standard'} • Created {new Date(campaign.createdAt).toLocaleDateString()}

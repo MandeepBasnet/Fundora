@@ -104,6 +104,36 @@ export const rejectEditRequest = async (id, reason) => {
   return response.data;
 };
 
+// ========================================
+// Admin Fund Release Calls
+// ========================================
+
+// Get campaigns eligible for non-milestone payouts
+export const getEligiblePayouts = async () => {
+  const response = await axios.get(`${API_BASE_URL}/fund-releases/eligible`, {
+    headers: getAuthHeaders()
+  });
+  return response.data;
+};
+
+// Release funds for non-milestone campaigns or force-release milestone campaigns
+export const releaseCampaignFunds = async (campaignId, overrideMilestone = false) => {
+  const response = await axios.post(`${API_BASE_URL}/fund-releases/campaign/${campaignId}`, 
+    { overrideMilestone }, 
+    { headers: getAuthHeaders() }
+  );
+  return response.data;
+};
+
+// Initiate payment gateway for disbursement
+export const initiateDisbursementPayment = async (releaseId, paymentMethod) => {
+  const response = await axios.post(`${API_BASE_URL}/fund-releases/${releaseId}/initiate-payment`, 
+    { paymentMethod }, 
+    { headers: getAuthHeaders() }
+  );
+  return response.data;
+};
+
 export default {
   getAdminStats,
   getPendingCampaigns,
@@ -114,5 +144,8 @@ export default {
   getRejectionReasons,
   getEditRequests,
   approveEditRequest,
-  rejectEditRequest
+  rejectEditRequest,
+  getEligiblePayouts,
+  releaseCampaignFunds,
+  initiateDisbursementPayment
 };

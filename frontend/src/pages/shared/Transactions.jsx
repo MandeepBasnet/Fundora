@@ -3,6 +3,7 @@ import {
   Download, Filter, Search, ArrowUpRight, ArrowDownLeft, Calendar 
 } from 'lucide-react';
 import { Button, Card, Badge, Input } from '../../components/ui';
+import { toast } from 'react-hot-toast';
 
 import { useAuth } from '../../context/AuthContext';
 
@@ -40,6 +41,7 @@ export function Transactions() {
 
         return {
           id: t.transactionId,
+          original_id: t._id,
           date: new Date(t.createdAt).toLocaleDateString(),
           description: isCredit 
             ? `Backing from ${t.user?.name || 'User'}` 
@@ -47,7 +49,9 @@ export function Transactions() {
           type: isCredit ? 'Credit' : 'Debit',
           amount: t.amount,
           status: t.status.charAt(0).toUpperCase() + t.status.slice(1),
-          method: t.gateway.charAt(0).toUpperCase() + t.gateway.slice(1)
+          method: t.gateway.charAt(0).toUpperCase() + t.gateway.slice(1),
+          rewardTier: t.rewardTier,
+          rewardRedeemed: t.rewardRedeemed
         };
       });
 
@@ -68,6 +72,22 @@ export function Transactions() {
   React.useEffect(() => {
       fetchHistory();
   }, []);
+
+  const handleRedeemReward = async (trxId, originalId) => {
+    try {
+      const { default: paymentService } = await import('../../services/paymentService');
+      await paymentService.redeemReward(originalId);
+      toast.success('Reward marked as redeemed!');
+      
+      // Update local state
+      setTransactions(prev => prev.map(t => 
+        t.original_id === originalId ? { ...t, rewardRedeemed: true } : t
+      ));
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to redeem reward. Ensure it is a completed transaction.');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -165,6 +185,24 @@ export function Transactions() {
                     `}>
                       {trx.status}
                     </Badge>
+                    {trx.rewardTier && trx.status === 'Completed' && trx.type === 'Debit' && (
+                      <div className="mt-2">
+                        {trx.rewardRedeemed ? (
+                          <span className="text-xs font-bold text-green-600 flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-green-500"></span> Redeemed
+                          </span>
+                        ) : (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-7 text-xs px-2 border-sky-200 text-sky-700 bg-sky-50 hover:bg-sky-100"
+                            onClick={() => handleRedeemReward(trx.id, trx.original_id)}
+                          >
+                            Mark as Redeemed
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </td>
                   <td className={`px-6 py-4 text-right font-bold ${trx.type === 'Credit' ? 'text-green-600' : 'text-slate-900'}`}>
                     {trx.type === 'Credit' ? '+' : '-'} Rs. {trx.amount.toLocaleString()}

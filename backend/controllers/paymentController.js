@@ -18,6 +18,10 @@ const decodeBase64 = (str) => {
 // Initialize Payment
 exports.initializePayment = async (req, res) => {
   try {
+    if (req.user.role === 'creator') {
+      return res.status(403).json({ message: 'Creators cannot back campaigns. Please use a Backer account.' });
+    }
+
     const { campaignId, amount, paymentMethod } = req.body;
     const userId = req.user._id; // From authMiddleware
 
@@ -160,13 +164,30 @@ exports.verifyEsewa = async (req, res) => {
     transaction.paidAt = new Date();
     await transaction.save();
 
+    // Check if this is the user's first completed transaction for this campaign
+    const priorTransactions = await Transaction.countDocuments({
+      user: transaction.user,
+      campaign: transaction.campaign,
+      status: 'completed',
+      _id: { $ne: transaction._id }
+    });
+
+    const isFirstTimeBacker = priorTransactions === 0;
+
     // Update Campaign
-    await Campaign.findByIdAndUpdate(transaction.campaign, {
+    const updateStats = {
       $inc: { 
         currentAmount: transaction.amount,
-        backerCount: 1
+        transactionCount: 1,
+        trendingScore: isFirstTimeBacker ? 10 : 5
       }
-    });
+    };
+    
+    if (isFirstTimeBacker) {
+      updateStats.$inc.backerCount = 1;
+    }
+
+    await Campaign.findByIdAndUpdate(transaction.campaign, updateStats);
 
     res.status(200).json({ message: 'Payment verification successful', transaction });
 
@@ -215,13 +236,30 @@ exports.verifyKhalti = async (req, res) => {
     transaction.paidAt = new Date();
     await transaction.save();
 
+    // Check if this is the user's first completed transaction for this campaign
+    const priorTransactions = await Transaction.countDocuments({
+      user: transaction.user,
+      campaign: transaction.campaign,
+      status: 'completed',
+      _id: { $ne: transaction._id }
+    });
+
+    const isFirstTimeBacker = priorTransactions === 0;
+
     // Update Campaign
-    await Campaign.findByIdAndUpdate(transaction.campaign, {
-        $inc: { 
-          currentAmount: transaction.amount,
-          backerCount: 1
-        }
-      });
+    const updateStats = {
+      $inc: { 
+        currentAmount: transaction.amount,
+        transactionCount: 1,
+        trendingScore: isFirstTimeBacker ? 10 : 5
+      }
+    };
+    
+    if (isFirstTimeBacker) {
+      updateStats.$inc.backerCount = 1;
+    }
+
+    await Campaign.findByIdAndUpdate(transaction.campaign, updateStats);
 
     res.status(200).json({ message: 'Payment verification successful', transaction });
 
@@ -268,6 +306,33 @@ exports.getTransactionHistory = async (req, res) => {
         res.status(200).json(transactions);
     } catch (error) {
         console.error('Transaction History Error:', error);
-        res.status(500).json({ message: 'Failed to fetch history' });
+        res.status(500).json({ message: 'Server error fetching history' });
+  }
+};
+
+// Redeem Reward
+exports.redeemReward = async (req, res) => {
+  try {
+    const transactionId = req.params.id;
+    
+    // Find checking ownership mapping
+    const transaction = await Transaction.findOne({ _id: transactionId, user: req.user._id });
+    
+    if (!transaction) {
+      return res.status(404).json({ message: 'Transaction not found or unauthorized' });
     }
+    
+    if (transaction.status !== 'completed') {
+      return res.status(400).json({ message: 'Can only redeem rewards for completed transactions' });
+    }
+
+    // Toggle redemption status
+    transaction.rewardRedeemed = true;
+    await transaction.save();
+
+    res.status(200).json({ message: 'Reward marked as redeemed', transaction });
+  } catch (error) {
+    console.error('Redeem Reward Error:', error);
+    res.status(500).json({ message: 'Server error processing reward redemption' });
+  }
 };

@@ -21,6 +21,12 @@ const transactionSchema = new mongoose.Schema({
     default: null
   },
 
+  // Tracks if the backer has received/redeemed the physical or digital reward
+  rewardRedeemed: {
+    type: Boolean,
+    default: false
+  },
+
   // Payment Details
   amount: {
     type: Number,

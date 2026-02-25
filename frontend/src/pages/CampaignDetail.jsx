@@ -43,9 +43,17 @@ export function CampaignDetail() {
           raised: c.currentAmount,
           goal: c.fundingGoal,
           backers: c.backerCount,
+          transactions: c.transactionCount,
           daysLeft: c.daysRemaining,
           story: c.description, // Mapping description to story for the tab
-          rewards: c.rewardTiers?.map(r => ({ ...r, id: r._id })) || [], // Ensure ID mapping
+          fundingType: c.fundingType,
+          rewards: c.rewardTiers?.map(r => ({ 
+            ...r, 
+            id: r._id,
+            available: r.isAvailable,
+            limited: r.quantityLimit,
+            backers: r.quantityClaimed || 0
+          })) || [], // Ensure ID mapping
           creatorName: c.creator?.name || 'Unknown Creator',
           creatorAvatar: c.creator?.profile?.avatar,
           location: c.creator?.profile?.address?.city || 'Nepal', // Fallback
@@ -188,6 +196,14 @@ export function CampaignDetail() {
                  <MapPin className="w-4 h-4" /> {campaign.location}
                  <span className="mx-2">•</span>
                  <span className="font-medium text-slate-900">{campaign.category}</span>
+                 {campaign.fundingType && (
+                   <>
+                     <span className="mx-2">•</span>
+                     <Badge variant="secondary" className="bg-sky-50 text-sky-700 hover:bg-sky-100 uppercase text-xs tracking-wider">
+                       {campaign.fundingType.replace('-', ' ')}
+                     </Badge>
+                   </>
+                 )}
               </div>
             </div>
 
@@ -227,7 +243,7 @@ export function CampaignDetail() {
 
                 <div className="space-y-1">
                   <span className="block text-3xl font-bold text-slate-900">{campaign.backers}</span>
-                  <span className="block text-slate-500 text-sm">backers</span>
+                  <span className="block text-slate-500 text-sm">backers ({campaign.transactions || 0} transaction{(campaign.transactions || 0) === 1 ? '' : 's'})</span>
                 </div>
 
                 <div className="space-y-1">

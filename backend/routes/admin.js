@@ -22,7 +22,11 @@ const {
 const { getFinancialStats } = require('../controllers/payoutController');
 const { 
   getAllFundReleases, 
-  updateDisbursementStatus 
+  initiateDisbursementPayment,
+  verifyDisbursementEsewa,
+  verifyDisbursementKhalti,
+  getEligiblePayouts,
+  releaseCampaignFunds
 } = require('../controllers/fundReleaseController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -62,7 +66,11 @@ router.put('/milestones/:campaignId/:milestoneId/reject', rejectMilestone);
 router.put('/milestones/:campaignId/:milestoneId/resubmit', requestMilestoneResubmission);
 
 // Fund Release Routes (FN 5.5, 5.10)
+router.get('/fund-releases/eligible', getEligiblePayouts);
 router.get('/fund-releases', getAllFundReleases);
-router.put('/fund-releases/:id/status', updateDisbursementStatus);
+router.post('/fund-releases/campaign/:id', releaseCampaignFunds);
+router.post('/fund-releases/:id/initiate-payment', initiateDisbursementPayment);
+router.post('/fund-releases/verify-esewa', verifyDisbursementEsewa);
+router.post('/fund-releases/verify-khalti', verifyDisbursementKhalti);
 
 module.exports = router;

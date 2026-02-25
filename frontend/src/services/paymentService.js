@@ -25,6 +25,12 @@ const paymentService = {
   getTransactionHistory: async () => {
     const response = await api.get('/payment/history');
     return response.data;
+  },
+
+  // Redeem Reward
+  redeemReward: async (transactionId) => {
+    const response = await api.put(`/payment/transactions/${transactionId}/redeem`);
+    return response.data;
   }
 };
 

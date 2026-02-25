@@ -32,12 +32,15 @@ import { UserManagement } from './pages/admin/UserManagement'
 import { Moderation } from './pages/admin/Moderation'
 import { PlatformSettings } from './pages/admin/PlatformSettings'
 import FinancialReports from './pages/admin/FinancialReports'
+import FundDisbursements from './pages/admin/FundDisbursements'
+import DisbursementGatewayHandler from './pages/admin/DisbursementGatewayHandler'
 import { MilestoneReview } from './pages/admin/MilestoneReview'
 
 // Shared pages
 import { Messages } from './pages/shared/Messages'
 import { Transactions } from './pages/shared/Transactions'
 import { Profile } from './pages/shared/Profile'
+import { Forbidden403 } from './pages/shared/Forbidden403'
 
 // Layouts
 import { DashboardLayout } from './layouts/DashboardLayout'
@@ -69,8 +72,7 @@ function App() {
           <Route path="/new-password" element={<NewPasswordPage />} />
           <Route path="/campaigns" element={<BrowseCampaigns />} />
           <Route path="/campaigns/:id" element={<CampaignDetail />} />
-          <Route path="/start-campaign" element={<StartCampaign />} />
-          <Route path="/edit-campaign/:campaignId" element={<StartCampaign />} />
+          <Route path="/403" element={<Forbidden403 />} />
           
           {/* Admin Routes - Admin only */}
           <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
@@ -80,6 +82,9 @@ function App() {
               <Route path="users" element={<UserManagement />} />
               <Route path="moderation" element={<Moderation />} />
               <Route path="financial-reports" element={<FinancialReports />} />
+              <Route path="fund-disbursements" element={<FundDisbursements />} />
+              <Route path="fund-disbursements/verify-esewa/:releaseId" element={<DisbursementGatewayHandler gateway="esewa" />} />
+              <Route path="fund-disbursements/verify-khalti/:releaseId" element={<DisbursementGatewayHandler gateway="khalti" />} />
               <Route path="milestone-review" element={<MilestoneReview />} />
               <Route path="settings" element={<PlatformSettings />} />
             </Route>
@@ -107,6 +112,9 @@ function App() {
               <Route path="transactions" element={<Transactions />} />
               <Route path="profile" element={<Profile />} />
             </Route>
+            {/* Standalone Creator Routes */}
+            <Route path="/start-campaign" element={<StartCampaign />} />
+            <Route path="/edit-campaign/:campaignId" element={<StartCampaign />} />
           </Route>
           
           {/* Standalone Shared Routes - Any authenticated user */}

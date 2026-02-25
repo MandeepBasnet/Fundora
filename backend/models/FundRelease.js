@@ -11,16 +11,22 @@ const fundReleaseSchema = new mongoose.Schema({
   },
   milestoneId: {
     type: mongoose.Schema.Types.ObjectId,
-    required: [true, 'Fund release must be linked to a milestone']
+    required: false
   },
   milestoneOrder: {
     type: Number,
-    required: true
+    required: false
   },
   milestoneTitle: {
     type: String,
-    required: true
+    required: false
   },
+  
+  // Link to specific backer transactions being paid out
+  transactions: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Transaction'
+  }],
 
   // Financial Details (FN 5.4)
   grossAmount: {
@@ -37,7 +43,7 @@ const fundReleaseSchema = new mongoose.Schema({
   },
   milestonePercentage: {
     type: Number,
-    required: true  // The percentage this milestone represents
+    required: false
   },
 
   // Approval Details

@@ -282,7 +282,15 @@ const campaignSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  transactionCount: {
+    type: Number,
+    default: 0
+  },
   viewCount: {
+    type: Number,
+    default: 0
+  },
+  trendingScore: {
     type: Number,
     default: 0
   },

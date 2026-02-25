@@ -23,7 +23,12 @@ These features are fully implemented with both frontend and backend logic.
 **3. Campaign Discovery**
 - Browse Campaigns (Grid View)
 - Advanced Search & Filtering (Category, Funding Type)
-- Sorting & Pagination
+- Sorting & Pagination (including Trending Logic)
+  - The trendingScore automatically increments based on interactions:
+  - +10 points when a user backs a campaign for the first time.
+  - +5 points for repeat transactions by the same user.
+  - +5 points when the creator posts a Campaign Update.
+  - +2 points when a user posts a Comment.
 - Detailed Campaign View (Story, Rewards, Updates, Comments)
 
 **4. Payments**

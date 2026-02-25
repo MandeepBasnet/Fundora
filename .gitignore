@@ -11,3 +11,5 @@ Thumbs.db
 
 # Scripts
 backend/scripts/seedData.js
+backend/scripts/generateTestData.js
+backend/scripts/resetFinances.js

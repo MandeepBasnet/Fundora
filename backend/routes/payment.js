@@ -17,4 +17,7 @@ router.post('/verify-khalti', protect, paymentController.verifyKhalti);
 // Transaction History (Protected)
 router.get('/history', protect, paymentController.getTransactionHistory);
 
+// Redeem Reward (Protected)
+router.put('/transactions/:id/redeem', protect, paymentController.redeemReward);
+
 module.exports = router;

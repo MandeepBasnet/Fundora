@@ -32,7 +32,7 @@ export function BrowseCampaigns() {
     try {
       // Map sort options to backend
       let sortParam = 'newest';
-      if (sortBy === 'trending') sortParam = 'most-backed';
+      if (sortBy === 'trending') sortParam = 'trending';
       if (sortBy === 'most-funded') sortParam = 'most-funded';
       if (sortBy === 'closing-soon') sortParam = 'ending-soon';
       if (sortBy === 'recently-added') sortParam = 'newest';

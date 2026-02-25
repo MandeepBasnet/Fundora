@@ -9,6 +9,10 @@ const { CAMPAIGN_CATEGORIES, CAMPAIGN_STATUSES } = require('../models/Campaign')
 // @access  Private (Creator)
 const createCampaign = async (req, res) => {
   try {
+    if (req.user.role === 'backer') {
+      return res.status(403).json({ message: 'Backers cannot create campaigns. Please use a Creator account.' });
+    }
+
     const {
       title,
       description,
@@ -157,10 +161,17 @@ const getCampaignById = async (req, res) => {
       }
     }
 
+    // Get total number of successful transactions for this campaign
+    const transactionCount = await Transaction.countDocuments({
+      campaign: campaign._id,
+      status: 'completed'
+    });
+
     res.json({
       ...campaign.toObject(),
       isBacked,
-      userBackedAmount
+      userBackedAmount,
+      transactionCount
     });
   } catch (error) {
     console.error('Get campaign error:', error);
@@ -284,6 +295,9 @@ const getAllCampaigns = async (req, res) => {
         break;
       case 'most-backed':
         sortOption = { backerCount: -1 };
+        break;
+      case 'trending':
+        sortOption = { trendingScore: -1, backerCount: -1, createdAt: -1 };
         break;
       default:
         sortOption = { createdAt: -1 };
@@ -631,6 +645,9 @@ const addComment = async (req, res) => {
       parentComment: parentComment || null
     });
 
+    // Increment trending score for the campaign
+    await Campaign.findByIdAndUpdate(campaignId, { $inc: { trendingScore: 2 } });
+
     const populatedComment = await Comment.findById(comment._id)
       .populate('author', 'name profile.avatar');
 
@@ -778,6 +795,9 @@ const createCampaignUpdate = async (req, res) => {
       images,
       video
     });
+
+    // Increment trending score for the campaign
+    await Campaign.findByIdAndUpdate(campaignId, { $inc: { trendingScore: 5 } });
 
     res.status(201).json(update);
   } catch (error) {
