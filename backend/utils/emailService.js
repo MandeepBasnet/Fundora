@@ -262,6 +262,83 @@ const sendCampaignTerminatedEmail = async (email, campaignTitle, reason) => {
   return transporter.sendMail(mailOptions);
 };
 
+const sendReceiptEmail = async (transaction, campaign, backer, creator) => {
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@fundora.com';
+  
+  const formattedAmount = `NPR ${transaction.amount.toLocaleString()}`;
+  const dateStr = new Date(transaction.paidAt || transaction.createdAt).toLocaleDateString('en-US', {
+    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || `Fundora Payments <${process.env.SMTP_USER}>`,
+    to: [backer.email, creator.email, adminEmail].join(', '),
+    subject: `Fundora Payment Receipt: ${campaign.title}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+          <div style="background-color: white; border-top: 6px solid #0284c7; border-radius: 8px; padding: 40px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #0284c7; font-size: 28px; font-weight: bold; margin: 0;">Fundora Receipt</h1>
+            </div>
+            
+            <p style="color: #475569; font-size: 16px; margin-bottom: 30px; text-align: center;">
+              Thank you for your transaction. Here are your payment details.
+            </p>
+            
+            <div style="background-color: #f1f5f9; padding: 24px; border-radius: 8px; margin-bottom: 30px;">
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 8px 0; color: #64748b; font-size: 14px; width: 40%;">Transaction ID</td>
+                  <td style="padding: 8px 0; color: #0f172a; font-size: 14px; font-weight: 600; text-align: right;">${transaction.transactionId}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #64748b; font-size: 14px; border-top: 1px solid #e2e8f0;">Campaign</td>
+                  <td style="padding: 8px 0; color: #0f172a; font-size: 14px; font-weight: 600; text-align: right; border-top: 1px solid #e2e8f0;">${campaign.title}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #64748b; font-size: 14px; border-top: 1px solid #e2e8f0;">Payment Method</td>
+                  <td style="padding: 8px 0; color: #0f172a; font-size: 14px; font-weight: 600; text-align: right; text-transform: capitalize; border-top: 1px solid #e2e8f0;">${transaction.gateway}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #64748b; font-size: 14px; border-top: 1px solid #e2e8f0;">Date</td>
+                  <td style="padding: 8px 0; color: #0f172a; font-size: 14px; font-weight: 600; text-align: right; border-top: 1px solid #e2e8f0;">${dateStr}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 16px 0 8px 0; color: #0f172a; font-size: 16px; font-weight: bold; border-top: 2px solid #cbd5e1;">Total Amount</td>
+                  <td style="padding: 16px 0 8px 0; color: #0284c7; font-size: 20px; font-weight: bold; text-align: right; border-top: 2px solid #cbd5e1;">${formattedAmount}</td>
+                </tr>
+              </table>
+            </div>
+            
+            <p style="color: #94a3b8; font-size: 13px; text-align: center; margin: 0;">
+              This email was sent to ${backer.email} (Backer), ${creator.email} (Creator), and the Fundora Admin team. Keep this receipt for your records.
+            </p>
+            
+          </div>
+        </div>
+      </body>
+      </html>
+    `
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Receipt Email sent:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Error sending receipt email:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   generateOTP,
   sendOTPEmail,
@@ -270,5 +347,6 @@ module.exports = {
   sendFlagReceivedEmail,
   sendFlagResolutionEmail,
   sendCreatorWarningEmail,
-  sendCampaignTerminatedEmail
+  sendCampaignTerminatedEmail,
+  sendReceiptEmail
 };

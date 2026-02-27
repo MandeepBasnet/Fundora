@@ -482,7 +482,8 @@ export function CampaignDetail() {
                     state: { 
                       campaign, 
                       initialAmount: pledgeAmount,
-                      initialPaymentMethod: paymentMethod
+                      initialPaymentMethod: paymentMethod,
+                      selectedRewardId: selectedReward
                     } 
                   });
                 }}

@@ -188,7 +188,18 @@ const getMyCampaigns = async (req, res) => {
       .sort({ createdAt: -1 })
       .select('-description'); // Exclude long description for list view
 
-    res.json(campaigns);
+    const campaignsWithStats = await Promise.all(campaigns.map(async (camp) => {
+      const transactionCount = await Transaction.countDocuments({
+        campaign: camp._id,
+        status: 'completed'
+      });
+      return {
+        ...camp.toObject(),
+        transactionCount
+      };
+    }));
+
+    res.json(campaignsWithStats);
   } catch (error) {
     console.error('Get my campaigns error:', error);
     res.status(500).json({ message: 'Server error fetching campaigns' });

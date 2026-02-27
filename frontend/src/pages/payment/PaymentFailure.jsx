@@ -1,7 +1,31 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import api from '../../services/api';
 
 const PaymentFailure = () => {
+  const [searchParams] = useSearchParams();
+  const [markedFailed, setMarkedFailed] = useState(false);
+
+  useEffect(() => {
+    const notifyBackend = async () => {
+      // eSewa might pass 'transaction_uuid' or similar depending on how they implemented their return URLs
+      // Check for common keys
+      const transactionId = searchParams.get('transaction_uuid') || searchParams.get('transactionId') || searchParams.get('pidx');
+      
+      if (transactionId && !markedFailed) {
+        try {
+          // Fire and forget
+          await api.get(`/payments/payment-failed/${transactionId}`);
+          setMarkedFailed(true);
+        } catch (error) {
+          console.error('Failed to notify backend of payment failure', error);
+        }
+      }
+    };
+
+    notifyBackend();
+  }, [searchParams, markedFailed]);
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
       <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">

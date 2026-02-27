@@ -24,6 +24,23 @@ export default function FundDisbursements() {
   const [disbursements, setDisbursements] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
+  
+  // Pagination State
+  const itemsPerPage = 10;
+  const [eligiblePage, setEligiblePage] = useState(1);
+  const [historyPage, setHistoryPage] = useState(1);
+
+  const totalEligiblePages = Math.ceil(eligiblePayouts.length / itemsPerPage);
+  const paginatedEligible = eligiblePayouts.slice(
+    (eligiblePage - 1) * itemsPerPage,
+    eligiblePage * itemsPerPage
+  );
+
+  const totalHistoryPages = Math.ceil(disbursements.length / itemsPerPage);
+  const paginatedHistory = disbursements.slice(
+    (historyPage - 1) * itemsPerPage,
+    historyPage * itemsPerPage
+  );
 
   // Dialog State
   const [selectedMilestoneCampaign, setSelectedMilestoneCampaign] = useState(null);
@@ -53,7 +70,7 @@ export default function FundDisbursements() {
   const fetchDisbursementHistory = async () => {
     try {
       setLoadingHistory(true);
-      const data = await getAllFundReleases({ limit: 50 });
+      const data = await getAllFundReleases({ limit: 1000 });
       setDisbursements(data.releases || []);
     } catch (error) {
       console.error('Failed to load disbursement history:', error);
@@ -184,7 +201,7 @@ export default function FundDisbursements() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {eligiblePayouts.map((camp) => (
+                    {paginatedEligible.map((camp) => (
                       <tr key={camp.campaignId} className="bg-white hover:bg-slate-50/50">
                         <td className="px-6 py-4">
                           <div className="font-medium text-slate-900">{camp.title}</div>
@@ -234,6 +251,33 @@ export default function FundDisbursements() {
                 </table>
               </div>
             )}
+
+            {/* Eligible Pagination Controls */}
+            {totalEligiblePages > 1 && (
+              <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/50">
+                <span className="text-sm text-slate-500">
+                  Showing {((eligiblePage - 1) * itemsPerPage) + 1} to {Math.min(eligiblePage * itemsPerPage, eligiblePayouts.length)} of {eligiblePayouts.length} entries
+                </span>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setEligiblePage(p => Math.max(1, p - 1))}
+                    disabled={eligiblePage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setEligiblePage(p => Math.min(totalEligiblePages, p + 1))}
+                    disabled={eligiblePage === totalEligiblePages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
         </TabsContent>
 
@@ -269,7 +313,7 @@ export default function FundDisbursements() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {disbursements.map((release) => (
+                    {paginatedHistory.map((release) => (
                       <tr key={release._id} className="bg-white hover:bg-slate-50/50">
                         <td className="px-6 py-4">
                           <div className="text-xs text-slate-500 mb-1">
@@ -318,6 +362,33 @@ export default function FundDisbursements() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+            
+            {/* History Pagination Controls */}
+            {totalHistoryPages > 1 && (
+              <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/50">
+                <span className="text-sm text-slate-500">
+                  Showing {((historyPage - 1) * itemsPerPage) + 1} to {Math.min(historyPage * itemsPerPage, disbursements.length)} of {disbursements.length} entries
+                </span>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
+                    disabled={historyPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setHistoryPage(p => Math.min(totalHistoryPages, p + 1))}
+                    disabled={historyPage === totalHistoryPages}
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
             )}
           </Card>

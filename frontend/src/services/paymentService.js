@@ -31,6 +31,18 @@ const paymentService = {
   redeemReward: async (transactionId) => {
     const response = await api.put(`/payment/transactions/${transactionId}/redeem`);
     return response.data;
+  },
+
+  // Get Creator Finances Overview
+  getCreatorFinances: async () => {
+    const response = await api.get('/finances/overview');
+    return response.data;
+  },
+
+  // Get Creator Payouts
+  getCreatorPayouts: async () => {
+    const response = await api.get('/finances/payouts');
+    return response.data;
   }
 };
 

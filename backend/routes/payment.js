@@ -14,6 +14,9 @@ router.get('/verify-esewa', paymentController.verifyEsewa);
 // Verify Khalti (Protected)
 router.post('/verify-khalti', protect, paymentController.verifyKhalti);
 
+// Handle Payment Failure (Public callback so eSewa or frontend can hit it easily)
+router.get('/payment-failed/:id', paymentController.handlePaymentFailure);
+
 // Transaction History (Protected)
 router.get('/history', protect, paymentController.getTransactionHistory);
 

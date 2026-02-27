@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const Transaction = require('../models/Transaction');
 const Campaign = require('../models/Campaign');
+const { sendReceiptEmail } = require('../utils/emailService');
 
 // Helper to create signature for eSewa
 const createEsewaSignature = (message) => {
@@ -22,7 +23,7 @@ exports.initializePayment = async (req, res) => {
       return res.status(403).json({ message: 'Creators cannot back campaigns. Please use a Backer account.' });
     }
 
-    const { campaignId, amount, paymentMethod } = req.body;
+    const { campaignId, amount, paymentMethod, rewardTierId } = req.body;
     const userId = req.user._id; // From authMiddleware
 
     // 1. Validate Campaign
@@ -31,9 +32,22 @@ exports.initializePayment = async (req, res) => {
       return res.status(404).json({ message: 'Campaign not found' });
     }
 
-    // 2. Validate Amount (Min NPR 10 for testing, usually 100)
+    // 2. Validate Amount against minimums and reward tier
     if (amount < 10) {
       return res.status(400).json({ message: 'Minimum amount is NPR 10' });
+    }
+
+    if (rewardTierId) {
+      const rewardTier = campaign.rewardTiers.id(rewardTierId);
+      if (!rewardTier) {
+        return res.status(404).json({ message: 'Selected reward not found in this campaign' });
+      }
+      if (!rewardTier.isAvailable || (rewardTier.quantityLimit > 0 && rewardTier.quantityClaimed >= rewardTier.quantityLimit)) {
+        return res.status(400).json({ message: 'This reward is no longer available' });
+      }
+      if (amount < rewardTier.amount) {
+        return res.status(400).json({ message: `Minimum amount for this reward is NPR ${rewardTier.amount}` });
+      }
     }
 
     // 3. Create Transaction ID
@@ -46,7 +60,8 @@ exports.initializePayment = async (req, res) => {
       amount,
       gateway: paymentMethod,
       transactionId,
-      status: 'pending'
+      status: 'pending',
+      ...(rewardTierId && { rewardTier: rewardTierId })
     });
     await transaction.save();
 
@@ -164,6 +179,12 @@ exports.verifyEsewa = async (req, res) => {
     transaction.paidAt = new Date();
     await transaction.save();
 
+    // Populate user and campaign data for the receipt
+    await transaction.populate([
+      { path: 'user', select: 'name email' },
+      { path: 'campaign', select: 'title creator', populate: { path: 'creator', select: 'name email' } }
+    ]);
+
     // Check if this is the user's first completed transaction for this campaign
     const priorTransactions = await Transaction.countDocuments({
       user: transaction.user,
@@ -187,7 +208,11 @@ exports.verifyEsewa = async (req, res) => {
       updateStats.$inc.backerCount = 1;
     }
 
-    await Campaign.findByIdAndUpdate(transaction.campaign, updateStats);
+    await Campaign.findByIdAndUpdate(transaction.campaign._id, updateStats);
+
+    // Send receipt email securely in the background
+    sendReceiptEmail(transaction, transaction.campaign, transaction.user, transaction.campaign.creator)
+      .catch(err => console.error('Failed to send receipt email for eSewa payment', err));
 
     res.status(200).json({ message: 'Payment verification successful', transaction });
 
@@ -236,6 +261,12 @@ exports.verifyKhalti = async (req, res) => {
     transaction.paidAt = new Date();
     await transaction.save();
 
+    // Populate user and campaign data for the receipt
+    await transaction.populate([
+      { path: 'user', select: 'name email' },
+      { path: 'campaign', select: 'title creator', populate: { path: 'creator', select: 'name email' } }
+    ]);
+
     // Check if this is the user's first completed transaction for this campaign
     const priorTransactions = await Transaction.countDocuments({
       user: transaction.user,
@@ -259,13 +290,46 @@ exports.verifyKhalti = async (req, res) => {
       updateStats.$inc.backerCount = 1;
     }
 
-    await Campaign.findByIdAndUpdate(transaction.campaign, updateStats);
+    await Campaign.findByIdAndUpdate(transaction.campaign._id, updateStats);
+
+    // Send receipt email securely in the background
+    sendReceiptEmail(transaction, transaction.campaign, transaction.user, transaction.campaign.creator)
+      .catch(err => console.error('Failed to send receipt email for Khalti payment', err));
 
     res.status(200).json({ message: 'Payment verification successful', transaction });
 
   } catch (error) {
     console.error('Khalti Verification Error:', error);
     res.status(500).json({ message: 'Payment verification failed' });
+  }
+};
+
+// Handle Payment Failure
+exports.handlePaymentFailure = async (req, res) => {
+  try {
+    const { id } = req.params; // Expects transactionId (uuid) or gatewayRefId
+    
+    // Find checking by either transactionId or _id just in case
+    const transaction = await Transaction.findOne({
+      $or: [
+        { transactionId: id },
+        { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }
+      ]
+    });
+
+    if (!transaction) {
+      return res.status(404).json({ message: 'Transaction not found' });
+    }
+
+    if (transaction.status === 'pending') {
+      transaction.status = 'failed';
+      await transaction.save();
+    }
+
+    res.status(200).json({ message: 'Payment marked as failed', transaction });
+  } catch (error) {
+    console.error('Payment Failure Handling Error:', error);
+    res.status(500).json({ message: 'Server error marking payment failure' });
   }
 };
 
@@ -299,7 +363,7 @@ exports.getTransactionHistory = async (req, res) => {
         }
 
         const transactions = await Transaction.find(query)
-            .populate('campaign', 'title')
+            .populate('campaign', 'title fundingType')
             .populate('user', 'name email') // Helpful for creators to see who backed
             .sort({ createdAt: -1 });
         

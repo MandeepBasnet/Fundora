@@ -160,9 +160,6 @@ function ProjectCard({ project }) {
       </div>
 
       <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap gap-3 justify-end">
-        <Button variant="ghost" size="sm" className="text-slate-600">
-          <Download className="w-4 h-4 mr-2" /> Receipt
-        </Button>
         <Button variant="outline" size="sm">
           <MessageSquare className="w-4 h-4 mr-2" /> Message Creator
         </Button>

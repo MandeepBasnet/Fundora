@@ -7,7 +7,7 @@ import { toast } from 'react-hot-toast';
 const PaymentSelection = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { campaign, initialAmount, initialPaymentMethod } = location.state || {};
+  const { campaign, initialAmount, initialPaymentMethod, selectedRewardId } = location.state || {};
   
   const [amount, setAmount] = useState(initialAmount || '');
   const [paymentMethod, setPaymentMethod] = useState(initialPaymentMethod || 'esewa');
@@ -30,7 +30,8 @@ const PaymentSelection = () => {
       const response = await paymentService.initiatePayment({
         campaignId: campaign._id,
         amount: parseInt(amount),
-        paymentMethod
+        paymentMethod,
+        ...(selectedRewardId && { rewardTierId: selectedRewardId })
       });
 
       if (paymentMethod === 'esewa') {

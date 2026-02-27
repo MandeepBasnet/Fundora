@@ -1,9 +1,41 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Wallet, ArrowDownLeft, ArrowUpRight, Download, Clock } from 'lucide-react';
-import { Button, Card } from '../../components/ui';
-import { financeData } from '../../mockData';
+import { Button, Card, Badge } from '../../components/ui';
+import paymentService from '../../services/paymentService'; // Replace mockData
 
 export function Finances() {
+  const [finances, setFinances] = useState({
+    availableBalance: 0,
+    pendingBalance: 0,
+    totalWithdrawn: 0
+  });
+  const [payouts, setPayouts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadFinances = async () => {
+      try {
+        setLoading(true);
+        const [financeOverview, payoutHistory] = await Promise.all([
+          paymentService.getCreatorFinances(),
+          paymentService.getCreatorPayouts()
+        ]);
+        setFinances(financeOverview);
+        setPayouts(payoutHistory);
+      } catch (error) {
+        console.error('Failed to load finances:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadFinances();
+  }, []);
+
+  if (loading) {
+    return <div className="p-8 text-center text-slate-500 animate-pulse">Loading financial data...</div>;
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -18,10 +50,10 @@ export function Finances() {
             <div className="p-2 bg-white/10 rounded-lg"><Wallet className="h-5 w-5" /></div>
             <span className="font-medium">Available Balance</span>
           </div>
-          <div className="text-3xl font-bold mb-1">Rs. {financeData.availableBalance.toLocaleString()}</div>        
+          <div className="text-3xl font-bold mb-1">Rs. {finances.availableBalance.toLocaleString()}</div>        
           <div className="flex items-center gap-2 mt-4">
-            <Button size="sm" className="bg-white text-slate-900 hover:bg-slate-100 w-full">
-              Withdraw Funds
+            <Button size="sm" className="bg-white text-slate-900 hover:bg-slate-100 w-full disabled:opacity-50">
+              Withdraw Funds (Contact Admin)
             </Button>
           </div>
         </Card>
@@ -31,8 +63,8 @@ export function Finances() {
             <div className="p-2 bg-orange-100 text-orange-600 rounded-lg"><Clock className="h-5 w-5" /></div>       
             <span className="font-medium">Pending Payouts</span>
           </div>
-          <div className="text-3xl font-bold text-slate-900 mb-1">Rs. {financeData.pendingBalance.toLocaleString()}</div>
-          <p className="text-xs text-slate-500 mt-2">Held until milestone verification</p>
+          <div className="text-3xl font-bold text-slate-900 mb-1">Rs. {finances.pendingBalance.toLocaleString()}</div>
+          <p className="text-xs text-slate-500 mt-2">Held for milestone security</p>
         </Card>
 
         <Card className="p-6">
@@ -40,7 +72,7 @@ export function Finances() {
             <div className="p-2 bg-green-100 text-green-600 rounded-lg"><ArrowUpRight className="h-5 w-5" /></div>  
             <span className="font-medium">Total Withdrawn</span>
           </div>
-          <div className="text-3xl font-bold text-slate-900 mb-1">Rs. {financeData.totalWithdrawn.toLocaleString()}</div>
+          <div className="text-3xl font-bold text-slate-900 mb-1">Rs. {finances.totalWithdrawn.toLocaleString()}</div>
           <p className="text-xs text-slate-500 mt-2">Lifetime earnings processed</p>
         </Card>
       </div>
@@ -57,49 +89,66 @@ export function Finances() {
           </div>
           <div>
             <p className="font-medium text-slate-900">eSewa Wallet</p>
-            <p className="text-sm text-slate-500">984•••••89</p>
+            <p className="text-sm text-slate-500">Primary Disbursement Method</p>
           </div>
-          <span className="ml-auto bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium">Verified</span>
+          <span className="ml-auto bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium">Auto Request</span>
         </div>
       </Card>
 
-      {/* Transaction History */}
+      {/* Payout History */}
       <Card className="overflow-hidden border-slate-200">
         <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-          <h3 className="font-bold text-lg text-slate-900">Transaction History</h3>
+          <h3 className="font-bold text-lg text-slate-900">Disbursement History</h3>
           <Button variant="ghost" size="sm" className="text-slate-500">
             <Download className="h-4 w-4 mr-2" /> Export CSV
           </Button>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 text-slate-500 font-medium">
-              <tr>
-                <th className="px-6 py-3">Transaction ID</th>
-                <th className="px-6 py-3">Date</th>
-                <th className="px-6 py-3">Description</th>
-                <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3 text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {financeData.transactions.map((txn) => (
-                <tr key={txn.id} className="hover:bg-slate-50/50">
-                  <td className="px-6 py-4 font-medium text-slate-900">{txn.id}</td>
-                  <td className="px-6 py-4 text-slate-500">{txn.date}</td>
-                  <td className="px-6 py-4 text-slate-600">{txn.description}</td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      {txn.status}
-                    </span>
-                  </td>
-                  <td className={`px-6 py-4 text-right font-medium ${txn.amount > 0 ? 'text-green-600' : 'text-slate-900'}`}>
-                    {txn.amount > 0 ? '+' : ''} Rs. {Math.abs(txn.amount).toLocaleString()}
-                  </td>
+          {payouts.length === 0 ? (
+            <div className="p-8 text-center text-slate-500 italic">No payouts have been processed yet.</div>
+          ) : (
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
+                <tr>
+                  <th className="px-6 py-4">Ref ID / Campaign</th>
+                  <th className="px-6 py-4">Date</th>
+                  <th className="px-6 py-4">Gross/Fee</th>
+                  <th className="px-6 py-4">Method & Status</th>
+                  <th className="px-6 py-4 text-right">Net Received</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {payouts.map((release) => (
+                  <tr key={release._id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-slate-900 font-mono text-xs">{release.transactionReference || release._id.slice(-8)}</div>
+                      <div className="text-slate-500 text-xs truncate max-w-[200px] mt-1">{release.campaign?.title}</div>
+                    </td>
+                    <td className="px-6 py-4 text-slate-600">
+                      {new Date(release.disbursedAt || release.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-slate-500">Gross: Rs. {release.grossAmount.toLocaleString()}</div>
+                      <div className="text-red-500 text-xs font-medium">Fee: -Rs. {release.platformFee.toLocaleString()}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1 items-start">
+                        <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">{release.disbursementMethod}</span>
+                        <Badge variant="outline" className={`
+                          ${release.disbursementStatus === 'completed' ? 'border-green-200 bg-green-50 text-green-700' : 'border-amber-200 bg-amber-50 text-amber-700'}
+                        `}>
+                          {release.disbursementStatus}
+                        </Badge>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right font-bold text-green-600">
+                      Rs. {release.amount.toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </Card>
     </div>

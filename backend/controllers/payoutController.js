@@ -38,8 +38,7 @@ const getFinancialStats = async (req, res) => {
     const transactions = await Transaction.find({ status: 'completed' })
         .populate('campaign', 'title')
         .populate('user', 'name email')
-        .sort({ createdAt: -1 })
-        .limit(50); // Limit for performance, maybe add pagination later
+        .sort({ createdAt: -1 });
 
     const result = stats.length > 0 ? stats[0] : { totalVolume: 0, totalHeld: 0, totalReleased: 0, totalProcessing: 0, count: 0 };
 
