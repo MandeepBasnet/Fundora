@@ -339,6 +339,93 @@ const sendReceiptEmail = async (transaction, campaign, backer, creator) => {
   }
 };
 
+const sendDisbursementReceiptEmail = async (release, campaign, creator) => {
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@fundora.com';
+  
+  const formattedGross = `NPR ${release.grossAmount.toLocaleString()}`;
+  const formattedFee = `NPR ${release.platformFee.toLocaleString()}`;
+  const formattedNet = `NPR ${release.amount.toLocaleString()}`;
+  const dateStr = new Date(release.disbursedAt || release.createdAt).toLocaleDateString('en-US', {
+    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || `Fundora Payments <${process.env.SMTP_USER}>`,
+    to: [creator.email, adminEmail].join(', '),
+    subject: `Fundora Disbursement Receipt: ${campaign.title}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+          <div style="background-color: white; border-top: 6px solid #10b981; border-radius: 8px; padding: 40px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #10b981; font-size: 28px; font-weight: bold; margin: 0;">Disbursement Receipt</h1>
+            </div>
+            
+            <p style="color: #475569; font-size: 16px; margin-bottom: 30px; text-align: center;">
+              Funds have been officially transferred to your account! Here are the payout details.
+            </p>
+            
+            <div style="background-color: #f1f5f9; padding: 24px; border-radius: 8px; margin-bottom: 30px;">
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 8px 0; color: #64748b; font-size: 14px; width: 40%;">Reference ID</td>
+                  <td style="padding: 8px 0; color: #0f172a; font-size: 14px; font-weight: 600; text-align: right;">${release.transactionReference || release._id}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #64748b; font-size: 14px; border-top: 1px solid #e2e8f0;">Campaign</td>
+                  <td style="padding: 8px 0; color: #0f172a; font-size: 14px; font-weight: 600; text-align: right; border-top: 1px solid #e2e8f0;">${campaign.title}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #64748b; font-size: 14px; border-top: 1px solid #e2e8f0;">Disbursement Method</td>
+                  <td style="padding: 8px 0; color: #0f172a; font-size: 14px; font-weight: 600; text-align: right; text-transform: capitalize; border-top: 1px solid #e2e8f0;">${release.disbursementMethod || 'System'}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #64748b; font-size: 14px; border-top: 1px solid #e2e8f0;">Date</td>
+                  <td style="padding: 8px 0; color: #0f172a; font-size: 14px; font-weight: 600; text-align: right; border-top: 1px solid #e2e8f0;">${dateStr}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #64748b; font-size: 14px; border-top: 1px solid #cbd5e1;">Gross Funds Releasable</td>
+                  <td style="padding: 8px 0; color: #0f172a; font-size: 14px; font-weight: 600; text-align: right; border-top: 1px solid #cbd5e1;">${formattedGross}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #ef4444; font-size: 14px;">Platform Fee (5%)</td>
+                  <td style="padding: 8px 0; color: #ef4444; font-size: 14px; font-weight: 600; text-align: right;">- ${formattedFee}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 16px 0 8px 0; color: #0f172a; font-size: 16px; font-weight: bold; border-top: 2px solid #cbd5e1;">Net Transferred</td>
+                  <td style="padding: 16px 0 8px 0; color: #10b981; font-size: 20px; font-weight: bold; text-align: right; border-top: 2px solid #cbd5e1;">${formattedNet}</td>
+                </tr>
+              </table>
+            </div>
+            
+            <p style="color: #94a3b8; font-size: 13px; text-align: center; margin: 0;">
+              This email was sent to ${creator.email} (Creator) and the Fundora Admin team. Keep this receipt for your financial records.
+            </p>
+            
+          </div>
+        </div>
+      </body>
+      </html>
+    `
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Disbursement Receipt Email sent:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Error sending disbursement receipt email:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   generateOTP,
   sendOTPEmail,
@@ -348,5 +435,6 @@ module.exports = {
   sendFlagResolutionEmail,
   sendCreatorWarningEmail,
   sendCampaignTerminatedEmail,
-  sendReceiptEmail
+  sendReceiptEmail,
+  sendDisbursementReceiptEmail
 };

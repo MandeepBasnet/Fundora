@@ -679,7 +679,7 @@ const getMilestoneForReview = async (req, res) => {
     });
 
     const milestoneData = milestone.toObject();
-    milestoneData.fundAmount = Math.round(campaign.currentAmount * (milestone.percentage / 100));
+    milestoneData.fundAmount = Math.round(campaign.fundingGoal * (milestone.percentage / 100));
     milestoneData.platformFee = Math.round(milestoneData.fundAmount * 0.05);
     milestoneData.releaseAmount = milestoneData.fundAmount - milestoneData.platformFee;
 
@@ -735,27 +735,16 @@ const approveMilestone = async (req, res) => {
     }
 
     // -- FUND RELEASE CALCULATION (FN 5.4) --
-    const grossAmount = Math.round(campaign.currentAmount * (milestone.percentage / 100));
+    // Calculate based on the campaign's funding goal as requested
+    const grossAmount = Math.round(campaign.fundingGoal * (milestone.percentage / 100));
     const platformFee = Math.round(grossAmount * 0.05); // 5% platform fee
     const releaseAmount = grossAmount - platformFee;
-
-    // Validate sufficient unreleased funds
-    const maxReleasable = campaign.currentAmount - campaign.released_amount;
-    if (releaseAmount > maxReleasable) {
-      return res.status(400).json({ 
-        message: 'Insufficient unreleased funds for this milestone',
-        details: { releaseAmount, available: maxReleasable }
-      });
-    }
 
     // Update milestone status
     milestone.status = 'approved';
     milestone.reviewedAt = new Date();
     milestone.reviewedBy = req.user._id;
     milestone.completedAt = new Date();
-
-    // Update campaign released_amount
-    campaign.released_amount = (campaign.released_amount || 0) + releaseAmount;
 
     // Check if all milestones are approved
     const allApproved = campaign.milestones.every(
@@ -767,37 +756,17 @@ const approveMilestone = async (req, res) => {
 
     await campaign.save();
 
-    // Create FundRelease record (FN 5.5)
-    const fundRelease = await FundRelease.create({
-      campaign: campaign._id,
-      milestoneId: milestone._id,
-      milestoneOrder: milestone.order,
-      milestoneTitle: milestone.title,
-      grossAmount,
-      platformFee,
-      amount: releaseAmount,
-      milestonePercentage: milestone.percentage,
-      approvedBy: req.user._id,
-      disbursementMethod: campaign.disbursementMethod || 'esewa',
-      disbursementStatus: 'pending',
-      status: 'approved'
-    });
-
     // -- NOTIFICATIONS --
     // Notify creator (FN 5.6)
     await Notification.create({
       recipient: campaign.creator._id,
       type: 'milestone_approved',
       title: 'Milestone Approved! 🎉',
-      message: `Your milestone "${milestone.title}" for campaign "${campaign.title}" has been approved. NPR ${releaseAmount.toLocaleString()} will be released to your account.`,
+      message: `Your milestone "${milestone.title}" for campaign "${campaign.title}" has been approved by the administrators.`,
       campaign: campaign._id,
       milestoneId: milestone._id,
       metadata: {
-        milestoneTitle: milestone.title,
-        releaseAmount,
-        grossAmount,
-        platformFee,
-        fundReleaseId: fundRelease._id
+        milestoneTitle: milestone.title
       }
     });
 
@@ -812,7 +781,7 @@ const approveMilestone = async (req, res) => {
         recipient: backerId,
         type: 'backer_milestone_update',
         title: 'Project Milestone Achieved!',
-        message: `"${campaign.title}" has completed milestone "${milestone.title}". Funds of NPR ${releaseAmount.toLocaleString()} have been released to the creator.`,
+        message: `"${campaign.title}" has successfully completed and verified milestone "${milestone.title}".`,
         campaign: campaign._id,
         milestoneId: milestone._id,
         metadata: {
@@ -837,20 +806,14 @@ const approveMilestone = async (req, res) => {
         recipient: campaign.creator._id,
         type: 'project_completed',
         title: 'Project Completed! 🏆',
-        message: `All milestones for "${campaign.title}" have been completed. Congratulations!`,
+        message: `All milestones for "${campaign.title}" have been completed and verified. Congratulations!`,
         campaign: campaign._id
       });
     }
 
     res.json({
-      message: 'Milestone approved and fund release created',
-      milestone,
-      fundRelease: {
-        grossAmount,
-        platformFee,
-        releaseAmount,
-        disbursementMethod: fundRelease.disbursementMethod
-      }
+      message: 'Milestone approved successfully',
+      milestone
     });
   } catch (error) {
     console.error('Approve milestone error:', error);

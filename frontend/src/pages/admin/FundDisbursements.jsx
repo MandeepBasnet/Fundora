@@ -6,11 +6,13 @@ import {
 import { 
   getEligiblePayouts, 
   releaseCampaignFunds,
-  initiateDisbursementPayment
+  initiateDisbursementPayment,
+  rollbackDisbursement
 } from '../../services/adminService';
 import { toast } from 'react-hot-toast';
-import { Loader2, DollarSign, RefreshCw, CheckCircle2, AlertTriangle, ArrowRight, AlertCircle } from 'lucide-react';
+import { Loader2, DollarSign, RefreshCw, CheckCircle2, AlertTriangle, ArrowRight, AlertCircle, RotateCcw, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { generateReceiptPDF } from '../../utils/receiptGenerator';
 
 export default function FundDisbursements() {
   const [activeTab, setActiveTab] = useState('eligible');
@@ -44,6 +46,7 @@ export default function FundDisbursements() {
 
   // Dialog State
   const [selectedMilestoneCampaign, setSelectedMilestoneCampaign] = useState(null);
+  const [customReleaseAmount, setCustomReleaseAmount] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -80,18 +83,34 @@ export default function FundDisbursements() {
     }
   };
 
-  const handleReleaseFunds = async (campaignId, overrideMilestone = false) => {
+  const handleReleaseFunds = async (campaignId, overrideMilestone = false, amount = null) => {
     try {
       setReleasingId(campaignId);
-      await releaseCampaignFunds(campaignId, overrideMilestone);
+      await releaseCampaignFunds(campaignId, overrideMilestone, amount);
       toast.success('Funds released successfully!');
       fetchEligiblePayouts();
       setSelectedMilestoneCampaign(null);
+      setCustomReleaseAmount('');
     } catch (error) {
       console.error('Failed to release funds:', error);
       toast.error(error.response?.data?.message || 'Failed to release funds');
     } finally {
       setReleasingId(null);
+    }
+  };
+
+  const handleRollback = async (releaseId) => {
+    if (!window.confirm("Are you sure you want to cancel this disbursement? Funds will be returned to the Eligible Payouts list.")) return;
+    try {
+      setUpdatingId(releaseId);
+      await rollbackDisbursement(releaseId);
+      toast.success('Disbursement rolled back successfully.');
+      fetchDisbursementHistory();
+    } catch (error) {
+      console.error('Failed to rollback:', error);
+      toast.error(error.response?.data?.message || 'Failed to rollback disbursement');
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -135,6 +154,29 @@ export default function FundDisbursements() {
       console.error('Failed to initiate payment:', error);
       toast.error(error.response?.data?.message || 'Failed to initiate payment');
       setUpdatingId(null);
+    }
+  };
+
+  const handleDownloadReceipt = (release) => {
+    try {
+      const formattedTx = {
+         id: release.transactionReference || release._id,
+         date: new Date(release.disbursedAt || release.createdAt).toLocaleDateString(),
+         description: release.milestoneTitle ? `Milestone: ${release.milestoneTitle}` : `Campaign Payout`,
+         campaignTitle: release.campaign?.title || 'Unknown Campaign',
+         type: 'Debit',
+         amount: release.grossAmount || release.amount,
+         status: release.disbursementStatus.charAt(0).toUpperCase() + release.disbursementStatus.slice(1),
+         method: (release.disbursementMethod || 'System').charAt(0).toUpperCase() + (release.disbursementMethod || 'System').slice(1),
+         platformFee: release.platformFee || 0,
+         netAmount: release.amount
+      };
+      // For Admin Disbursement view, treat Admin as the "generator" and trigger Credit layout
+      generateReceiptPDF(formattedTx, { role: 'creator' });
+      toast.success('Receipt downloaded');
+    } catch (error) {
+      console.error("Failed to generate PDF", error);
+      toast.error('Error generating receipt');
     }
   };
 
@@ -194,6 +236,7 @@ export default function FundDisbursements() {
                     <tr>
                       <th className="px-6 py-4 font-medium">Campaign</th>
                       <th className="px-6 py-4 font-medium">Type</th>
+                      <th className="px-6 py-4 font-medium text-right">Total Funded</th>
                       <th className="px-6 py-4 font-medium text-right">Available (NPR)</th>
                       <th className="px-6 py-4 font-medium text-right">Fee (5%)</th>
                       <th className="px-6 py-4 font-medium text-right">Net Payout</th>
@@ -212,6 +255,9 @@ export default function FundDisbursements() {
                             {camp.fundingType.replace('-', ' ')}
                           </Badge>
                         </td>
+                        <td className="px-6 py-4 text-right text-slate-900 font-medium">
+                          {camp.totalFunded?.toLocaleString() || 0}
+                        </td>
                         <td className="px-6 py-4 text-right text-slate-600">
                           {camp.grossAvailable.toLocaleString()}
                         </td>
@@ -224,20 +270,21 @@ export default function FundDisbursements() {
                         <td className="px-6 py-4 text-center">
                           <Button 
                             onClick={() => {
-                              if (camp.fundingType === 'milestone-based' && camp.pendingMilestonesCount > 0) {
+                              if (camp.fundingType === 'milestone-based') {
                                 setSelectedMilestoneCampaign(camp);
+                                setCustomReleaseAmount(camp.netAmount.toString());
                               } else {
                                 handleReleaseFunds(camp.campaignId);
                               }
                             }}
                             disabled={releasingId === camp.campaignId}
-                            className={`${camp.fundingType === 'milestone-based' && camp.pendingMilestonesCount > 0 ? 'bg-amber-500 hover:bg-amber-600' : 'bg-sky-600 hover:bg-sky-700'} text-white w-full`}
+                            className={`${camp.fundingType === 'milestone-based' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-sky-600 hover:bg-sky-700'} text-white w-full`}
                           >
                             {releasingId === camp.campaignId ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
                             ) : (
                               <>
-                                {camp.fundingType === 'milestone-based' && camp.pendingMilestonesCount > 0 
+                                {camp.fundingType === 'milestone-based' 
                                   ? 'Review & Release' 
                                   : 'Release Funds'} 
                                 <ArrowRight className="w-4 h-4 ml-2" />
@@ -309,7 +356,7 @@ export default function FundDisbursements() {
                       <th className="px-6 py-4 font-medium text-right">Net Amount</th>
                       <th className="px-6 py-4 font-medium">Method</th>
                       <th className="px-6 py-4 font-medium">Status</th>
-                      <th className="px-6 py-4 font-medium w-48 text-right">Update Status</th>
+                      <th className="px-6 py-4 font-medium w-64 text-right">Update Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -343,17 +390,41 @@ export default function FundDisbursements() {
                           {getStatusBadge(release.disbursementStatus)}
                         </td>
                         <td className="px-6 py-4 text-right">
-                          {release.disbursementStatus !== 'completed' && (
-                            <div className="flex justify-end gap-2">
-                              {(release.disbursementStatus === 'pending' || release.disbursementStatus === 'failed') && (
-                                <Button 
-                                  size="sm" 
-                                  className={`${release.disbursementMethod === 'khalti' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700'} text-white text-xs px-4 h-8 capitalize`}
-                                  disabled={updatingId === release._id}
-                                  onClick={() => handleInitiatePayment(release)}
+                          {release.disbursementStatus === 'completed' ? (
+                            <div className="flex justify-end pr-2">
+                               <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="text-slate-400 hover:text-sky-600"
+                                  onClick={() => handleDownloadReceipt(release)}
+                                  title="Download PDF Receipt"
                                 >
-                                  {updatingId === release._id ? <Loader2 className="w-3 h-3 animate-spin" /> : `Pay via ${release.disbursementMethod || 'eSewa'}`}
+                                  <FileText className="w-4 h-4" />
                                 </Button>
+                            </div>
+                          ) : (
+                            <div className="flex justify-end gap-2 items-center">
+                              {(release.disbursementStatus === 'pending' || release.disbursementStatus === 'failed') && (
+                                <>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 h-8 px-2"
+                                    disabled={updatingId === release._id}
+                                    onClick={() => handleRollback(release._id)}
+                                    title="Rollback disbursement"
+                                  >
+                                    <RotateCcw className="w-4 h-4" />
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    className={`${release.disbursementMethod === 'khalti' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700'} text-white text-xs px-4 h-8 capitalize`}
+                                    disabled={updatingId === release._id}
+                                    onClick={() => handleInitiatePayment(release)}
+                                  >
+                                    {updatingId === release._id ? <Loader2 className="w-3 h-3 animate-spin" /> : `Pay via ${release.disbursementMethod || 'eSewa'}`}
+                                  </Button>
+                                </>
                               )}
                             </div>
                           )}
@@ -399,19 +470,64 @@ export default function FundDisbursements() {
       {selectedMilestoneCampaign && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <Card className="max-w-md w-full p-6 shadow-xl border-none">
-            <div className="flex gap-4">
-              <div className="w-12 h-12 bg-amber-100 rounded-full flex shrink-0 items-center justify-center">
-                <AlertCircle className="w-6 h-6 text-amber-600" />
+            
+            {selectedMilestoneCampaign.alreadyReleased > 0 ? (
+              <div className="flex gap-4">
+                <div className="w-12 h-12 bg-amber-100 rounded-full flex shrink-0 items-center justify-center">
+                  <AlertCircle className="w-6 h-6 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">Check Milestone Proofs</h3>
+                  <p className="text-slate-600 text-sm mb-2">
+                    This campaign has already received funds. Please check its past milestone proofs up to where the released amount (<strong className="text-slate-900">NPR {selectedMilestoneCampaign.alreadyReleased.toLocaleString()}</strong>) matched, before releasing more funds.
+                  </p>
+                  {selectedMilestoneCampaign.pendingMilestonesCount > 0 && (
+                     <p className="text-amber-700 text-sm bg-amber-50 rounded p-2 mb-4 border border-amber-200">
+                       It has <strong>{selectedMilestoneCampaign.pendingMilestonesCount} pending milestones</strong>.
+                     </p>
+                  )}
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Pending Milestones Detected</h3>
-                <p className="text-slate-600 text-sm mb-4">
-                  This is a milestone-based campaign that currently has <strong className="text-slate-900">{selectedMilestoneCampaign.pendingMilestonesCount} pending or unapproved milestones</strong>. 
-                </p>
-                <p className="text-slate-600 text-sm mb-6">
-                  It is heavily recommended to review and approve milestones before discharging funds. Are you sure you want to override and release the available <strong className="text-green-600">NPR {selectedMilestoneCampaign.netAmount.toLocaleString()}</strong>?
-                </p>
+            ) : (
+              <div className="flex gap-4 mb-4">
+                 <div className="w-12 h-12 bg-sky-100 rounded-full flex shrink-0 items-center justify-center">
+                  <DollarSign className="w-6 h-6 text-sky-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">Initial Disbursement</h3>
+                  <p className="text-slate-600 text-sm">
+                    This campaign has reached its funding goal and is eligible for its first payout!
+                  </p>
+                </div>
               </div>
+            )}
+            
+            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-4 text-sm mt-4">
+               <div className="flex justify-between mb-1">
+                 <span className="text-slate-500">Total Funded:</span>
+                 <span className="font-medium">NPR {selectedMilestoneCampaign.totalFunded?.toLocaleString()}</span>
+               </div>
+               <div className="flex justify-between mb-1">
+                 <span className="text-slate-500">Already Released:</span>
+                 <span className="font-medium text-amber-600">NPR {selectedMilestoneCampaign.alreadyReleased?.toLocaleString()}</span>
+               </div>
+               <div className="flex justify-between mb-3 border-b border-slate-200 pb-2">
+                 <span className="text-slate-500">Max Net Available:</span>
+                 <span className="font-bold text-green-600">NPR {selectedMilestoneCampaign.netAmount?.toLocaleString()}</span>
+               </div>
+
+               <div>
+                 <label className="block text-slate-700 font-medium mb-1">Custom Payout Amount (Net NPR)</label>
+                 <input 
+                   type="number"
+                   className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"
+                   value={customReleaseAmount}
+                   onChange={(e) => setCustomReleaseAmount(e.target.value)}
+                   max={selectedMilestoneCampaign.netAmount}
+                   min={0}
+                 />
+                 <p className="text-xs text-slate-400 mt-1">Specify how much to release if partially paying for a milestone tier.</p>
+               </div>
             </div>
             
             <div className="flex flex-col gap-2 mt-4">
@@ -422,15 +538,15 @@ export default function FundDisbursements() {
                  Go to Milestone Review
               </Button>
               <Button 
-                onClick={() => handleReleaseFunds(selectedMilestoneCampaign.campaignId, true)}
+                onClick={() => handleReleaseFunds(selectedMilestoneCampaign.campaignId, true, customReleaseAmount)}
                 className="w-full bg-amber-500 hover:bg-amber-600 text-white"
                 disabled={releasingId === selectedMilestoneCampaign.campaignId}
               >
-                {releasingId === selectedMilestoneCampaign.campaignId ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Override & Release Funds'}
+                {releasingId === selectedMilestoneCampaign.campaignId ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Release Specified Funds'}
               </Button>
               <Button 
                 variant="ghost" 
-                onClick={() => setSelectedMilestoneCampaign(null)}
+                onClick={() => { setSelectedMilestoneCampaign(null); setCustomReleaseAmount(''); }}
                 className="w-full text-slate-500 hover:text-slate-700 hover:bg-slate-100"
               >
                 Cancel

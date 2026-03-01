@@ -312,195 +312,196 @@ export function MilestoneSubmission() {
                   const isSelected = selectedMilestone?._id === milestone._id;
 
                   return (
-                    <Card 
-                      key={milestone._id}
-                      className={`p-4 transition-all ${
-                        isSelected ? 'ring-2 ring-sky-500 border-sky-300' : 
-                        isSubmittable ? 'border-sky-200 hover:border-sky-300 cursor-pointer' : 
-                        'border-slate-200 opacity-80'
-                      }`}
-                      onClick={() => isSubmittable && setSelectedMilestone(milestone)}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                          milestone.status === 'approved' || milestone.status === 'completed' ? 'bg-green-100' :
-                          milestone.status === 'rejected' ? 'bg-red-100' :
-                          isSubmittable ? 'bg-sky-100' : 'bg-slate-100'
-                        }`}>
-                          <StatusIcon className={`w-4 h-4 ${
-                            milestone.status === 'approved' || milestone.status === 'completed' ? 'text-green-600' :
-                            milestone.status === 'rejected' ? 'text-red-600' :
-                            isSubmittable ? 'text-sky-600' : 'text-slate-400'
-                          }`} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium text-slate-900">
-                              Milestone {milestone.order}: {milestone.title}
-                            </span>
-                            <Badge variant="outline" className={config.color}>
-                              {config.label}
-                            </Badge>
-                            <span className="text-sm text-slate-500">{milestone.percentage}%</span>
+                    <div key={milestone._id} className="space-y-3">
+                      <Card 
+                        className={`p-4 transition-all ${
+                          isSelected ? 'ring-2 ring-sky-500 border-sky-300' : 
+                          isSubmittable ? 'border-sky-200 hover:border-sky-300 cursor-pointer' : 
+                          'border-slate-200 opacity-80'
+                        }`}
+                        onClick={() => isSubmittable && setSelectedMilestone(milestone)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                            milestone.status === 'approved' || milestone.status === 'completed' ? 'bg-green-100' :
+                            milestone.status === 'rejected' ? 'bg-red-100' :
+                            isSubmittable ? 'bg-sky-100' : 'bg-slate-100'
+                          }`}>
+                            <StatusIcon className={`w-4 h-4 ${
+                              milestone.status === 'approved' || milestone.status === 'completed' ? 'text-green-600' :
+                              milestone.status === 'rejected' ? 'text-red-600' :
+                              isSubmittable ? 'text-sky-600' : 'text-slate-400'
+                            }`} />
                           </div>
-                          <p className="text-sm text-slate-500 mt-1">{milestone.description}</p>
-                          {milestone.fundAmount && (
-                            <p className="text-sm font-medium text-sky-600 mt-1">
-                              Release: Rs. {milestone.fundAmount.toLocaleString()}
-                            </p>
-                          )}
-                          {/* Rejection info */}
-                          {(milestone.status === 'rejected' || milestone.status === 'resubmission-required') && (
-                            <div className="mt-2 p-3 bg-red-50 rounded-lg text-sm text-red-700">
-                              <p className="font-medium">Feedback:</p>
-                              <p>{milestone.rejectionReason || milestone.resubmissionFeedback || 'No feedback provided'}</p>
-                              {milestone.resubmissionCount > 0 && (
-                                <p className="text-xs mt-1 text-red-500">Resubmission #{milestone.resubmissionCount}</p>
-                              )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium text-slate-900">
+                                Milestone {milestone.order}: {milestone.title}
+                              </span>
+                              <Badge variant="outline" className={config.color}>
+                                {config.label}
+                              </Badge>
+                              <span className="text-sm text-slate-500">{milestone.percentage}%</span>
                             </div>
-                          )}
-                          {isSubmittable && !isSelected && (
-                            <p className="text-sm text-sky-600 mt-2 font-medium">
-                              → Click to submit proof for this milestone
-                            </p>
+                            <p className="text-sm text-slate-500 mt-1">{milestone.description}</p>
+                            {milestone.fundAmount && (
+                              <p className="text-sm font-medium text-sky-600 mt-1">
+                                Release: Rs. {milestone.fundAmount.toLocaleString()}
+                              </p>
+                            )}
+                            {/* Rejection info */}
+                            {(milestone.status === 'rejected' || milestone.status === 'resubmission-required') && (
+                              <div className="mt-2 p-3 bg-red-50 rounded-lg text-sm text-red-700">
+                                <p className="font-medium">Feedback:</p>
+                                <p>{milestone.rejectionReason || milestone.resubmissionFeedback || 'No feedback provided'}</p>
+                                {milestone.resubmissionCount > 0 && (
+                                  <p className="text-xs mt-1 text-red-500">Resubmission #{milestone.resubmissionCount}</p>
+                                )}
+                              </div>
+                            )}
+                            {isSubmittable && !isSelected && (
+                              <p className="text-sm text-sky-600 mt-2 font-medium">
+                                → Click to submit proof for this milestone
+                              </p>
+                            )}
+                          </div>
+                          {!isSubmittable && !['approved', 'completed', 'submitted', 'rejected', 'resubmission-required'].includes(milestone.status) && (
+                            <Lock className="w-4 h-4 text-slate-300 mt-1" />
                           )}
                         </div>
-                        {!isSubmittable && !['approved', 'completed', 'submitted', 'rejected', 'resubmission-required'].includes(milestone.status) && (
-                          <Lock className="w-4 h-4 text-slate-300 mt-1" />
-                        )}
-                      </div>
-                    </Card>
+                      </Card>
+
+                      {/* Submission Form conditionally rendered under the selected milestone */}
+                      {isSelected && (
+                        <Card className="p-6 border-sky-200 bg-white space-y-6">
+                          <h2 className="text-lg font-semibold text-slate-900">
+                            Submit Proof — {milestone.title}
+                          </h2>
+
+                          {/* File Upload */}
+                          <div className="space-y-3">
+                            <label className="block text-sm font-medium text-slate-700">
+                              Proof Files <span className="text-red-500">*</span>
+                            </label>
+                            <p className="text-xs text-slate-500">Upload images, videos, or PDFs as evidence of milestone completion</p>
+                            
+                            <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-sky-400 transition-colors">
+                              <input
+                                type="file"
+                                multiple
+                                accept="image/*,video/*,.pdf"
+                                onChange={handleFileChange}
+                                className="hidden"
+                                id={`proof-upload-${milestone._id}`}
+                              />
+                              <label htmlFor={`proof-upload-${milestone._id}`} className="cursor-pointer">
+                                <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                                <p className="text-sm text-slate-600">Click to upload or drag files here</p>
+                                <p className="text-xs text-slate-400 mt-1">Images, Videos, PDFs • Max 10 files</p>
+                              </label>
+                            </div>
+
+                            {/* Upload progress */}
+                            {Object.entries(uploadProgress).map(([id, progress]) => (
+                              <div key={id} className="flex items-center gap-3 text-sm">
+                                <Loader2 className="w-4 h-4 animate-spin text-sky-600" />
+                                <div className="flex-1">
+                                  <Progress value={progress} className="h-2" />
+                                </div>
+                                <span className="text-slate-500">{progress}%</span>
+                              </div>
+                            ))}
+
+                            {/* Uploaded files */}
+                            {proofFiles.length > 0 && (
+                              <div className="space-y-2">
+                                {proofFiles.map((file, idx) => (
+                                  <div key={idx} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
+                                    <div className="w-12 h-12 rounded bg-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
+                                      {file.fileType === 'image' ? (
+                                        <img src={file.url} alt="" className="w-full h-full object-cover" />
+                                      ) : file.fileType === 'video' ? (
+                                        <Video className="w-5 h-5 text-slate-500" />
+                                      ) : (
+                                        <FileText className="w-5 h-5 text-slate-500" />
+                                      )}
+                                    </div>
+                                    <div className="flex-1">
+                                      <input
+                                        type="text"
+                                        value={file.caption}
+                                        onChange={(e) => updateFileCaption(idx, e.target.value)}
+                                        placeholder="Add a caption..."
+                                        className="w-full text-sm border border-slate-200 rounded px-2 py-1 bg-white"
+                                      />
+                                    </div>
+                                    <button 
+                                      onClick={() => removeProofFile(idx)}
+                                      className="text-slate-400 hover:text-red-500"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Progress Description */}
+                          <div className="space-y-2">
+                            <label className="block text-sm font-medium text-slate-700">
+                              Progress Description <span className="text-red-500">*</span>
+                            </label>
+                            <textarea
+                              value={progressDescription}
+                              onChange={(e) => setProgressDescription(e.target.value)}
+                              className="flex min-h-[120px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                              placeholder="Describe in detail what has been accomplished for this milestone, what evidence you're providing, and any relevant metrics or outcomes..."
+                              maxLength={2000}
+                            />
+                            <p className="text-xs text-slate-400 text-right">{progressDescription.length}/2000</p>
+                          </div>
+
+                          {/* Next Milestone Estimate */}
+                          <div className="space-y-2">
+                            <label className="block text-sm font-medium text-slate-700">
+                              Next Milestone Estimated Completion (optional)
+                            </label>
+                            <input
+                              type="date"
+                              value={nextMilestoneEstimate}
+                              onChange={(e) => setNextMilestoneEstimate(e.target.value)}
+                              className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
+                              min={new Date().toISOString().split('T')[0]}
+                            />
+                          </div>
+
+                          {/* Submit Button */}
+                          <div className="flex justify-end gap-3 pt-4 border-t">
+                            <Button 
+                              variant="outline" 
+                              onClick={() => { setSelectedMilestone(null); resetForm(); }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button 
+                              className="bg-sky-600 hover:bg-sky-700 text-white"
+                              onClick={handleSubmit}
+                              disabled={submitting || Object.keys(uploadProgress).length > 0}
+                            >
+                              {submitting ? (
+                                <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Submitting...</>
+                              ) : (
+                                <><CheckCircle2 className="w-4 h-4 mr-2" /> Submit for Review</>
+                              )}
+                            </Button>
+                          </div>
+                        </Card>
+                      )}
+                    </div>
                   );
                 })}
               </div>
-
-              {/* Submission Form */}
-              {selectedMilestone && (
-                <Card className="p-6 border-sky-200 bg-white space-y-6">
-                  <h2 className="text-lg font-semibold text-slate-900">
-                    Submit Proof — {selectedMilestone.title}
-                  </h2>
-
-                  {/* File Upload */}
-                  <div className="space-y-3">
-                    <label className="block text-sm font-medium text-slate-700">
-                      Proof Files <span className="text-red-500">*</span>
-                    </label>
-                    <p className="text-xs text-slate-500">Upload images, videos, or PDFs as evidence of milestone completion</p>
-                    
-                    <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-sky-400 transition-colors">
-                      <input
-                        type="file"
-                        multiple
-                        accept="image/*,video/*,.pdf"
-                        onChange={handleFileChange}
-                        className="hidden"
-                        id="proof-upload"
-                      />
-                      <label htmlFor="proof-upload" className="cursor-pointer">
-                        <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                        <p className="text-sm text-slate-600">Click to upload or drag files here</p>
-                        <p className="text-xs text-slate-400 mt-1">Images, Videos, PDFs • Max 10 files</p>
-                      </label>
-                    </div>
-
-                    {/* Upload progress */}
-                    {Object.entries(uploadProgress).map(([id, progress]) => (
-                      <div key={id} className="flex items-center gap-3 text-sm">
-                        <Loader2 className="w-4 h-4 animate-spin text-sky-600" />
-                        <div className="flex-1">
-                          <Progress value={progress} className="h-2" />
-                        </div>
-                        <span className="text-slate-500">{progress}%</span>
-                      </div>
-                    ))}
-
-                    {/* Uploaded files */}
-                    {proofFiles.length > 0 && (
-                      <div className="space-y-2">
-                        {proofFiles.map((file, idx) => (
-                          <div key={idx} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
-                            <div className="w-12 h-12 rounded bg-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
-                              {file.fileType === 'image' ? (
-                                <img src={file.url} alt="" className="w-full h-full object-cover" />
-                              ) : file.fileType === 'video' ? (
-                                <Video className="w-5 h-5 text-slate-500" />
-                              ) : (
-                                <FileText className="w-5 h-5 text-slate-500" />
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <input
-                                type="text"
-                                value={file.caption}
-                                onChange={(e) => updateFileCaption(idx, e.target.value)}
-                                placeholder="Add a caption..."
-                                className="w-full text-sm border border-slate-200 rounded px-2 py-1 bg-white"
-                              />
-                            </div>
-                            <button 
-                              onClick={() => removeProofFile(idx)}
-                              className="text-slate-400 hover:text-red-500"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Progress Description */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-slate-700">
-                      Progress Description <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      value={progressDescription}
-                      onChange={(e) => setProgressDescription(e.target.value)}
-                      className="flex min-h-[120px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
-                      placeholder="Describe in detail what has been accomplished for this milestone, what evidence you're providing, and any relevant metrics or outcomes..."
-                      maxLength={2000}
-                    />
-                    <p className="text-xs text-slate-400 text-right">{progressDescription.length}/2000</p>
-                  </div>
-
-                  {/* Next Milestone Estimate */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-slate-700">
-                      Next Milestone Estimated Completion (optional)
-                    </label>
-                    <input
-                      type="date"
-                      value={nextMilestoneEstimate}
-                      onChange={(e) => setNextMilestoneEstimate(e.target.value)}
-                      className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
-                      min={new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
-
-                  {/* Submit Button */}
-                  <div className="flex justify-end gap-3 pt-4 border-t">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => { setSelectedMilestone(null); resetForm(); }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      className="bg-sky-600 hover:bg-sky-700 text-white"
-                      onClick={handleSubmit}
-                      disabled={submitting || Object.keys(uploadProgress).length > 0}
-                    >
-                      {submitting ? (
-                        <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Submitting...</>
-                      ) : (
-                        <><CheckCircle2 className="w-4 h-4 mr-2" /> Submit for Review</>
-                      )}
-                    </Button>
-                  </div>
-                </Card>
-              )}
 
               {!submittableMilestone && milestones.length > 0 && (
                 <Card className="p-6 text-center bg-green-50 border-green-200">

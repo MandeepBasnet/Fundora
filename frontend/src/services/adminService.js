@@ -117,9 +117,12 @@ export const getEligiblePayouts = async () => {
 };
 
 // Release funds for non-milestone campaigns or force-release milestone campaigns
-export const releaseCampaignFunds = async (campaignId, overrideMilestone = false) => {
+export const releaseCampaignFunds = async (campaignId, overrideMilestone = false, amount = null) => {
+  const payload = { overrideMilestone };
+  if (amount) payload.amount = amount;
+
   const response = await axios.post(`${API_BASE_URL}/fund-releases/campaign/${campaignId}`, 
-    { overrideMilestone }, 
+    payload, 
     { headers: getAuthHeaders() }
   );
   return response.data;
@@ -129,6 +132,15 @@ export const releaseCampaignFunds = async (campaignId, overrideMilestone = false
 export const initiateDisbursementPayment = async (releaseId, paymentMethod) => {
   const response = await axios.post(`${API_BASE_URL}/fund-releases/${releaseId}/initiate-payment`, 
     { paymentMethod }, 
+    { headers: getAuthHeaders() }
+  );
+  return response.data;
+};
+
+// Rollback a pending/failed fund release
+export const rollbackDisbursement = async (releaseId) => {
+  const response = await axios.post(`${API_BASE_URL}/fund-releases/${releaseId}/rollback`, 
+    {}, 
     { headers: getAuthHeaders() }
   );
   return response.data;
@@ -147,5 +159,6 @@ export default {
   rejectEditRequest,
   getEligiblePayouts,
   releaseCampaignFunds,
-  initiateDisbursementPayment
+  initiateDisbursementPayment,
+  rollbackDisbursement
 };

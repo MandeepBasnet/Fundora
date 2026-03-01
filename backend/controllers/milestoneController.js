@@ -26,9 +26,24 @@ const submitMilestoneProof = async (req, res) => {
       return res.status(400).json({ message: 'Campaign must be active or completed to submit milestone proof' });
     }
 
-    // For active campaigns, verify they've reached their goal
-    if (campaign.status === 'active' && campaign.currentAmount < campaign.fundingGoal) {
-      return res.status(400).json({ message: 'Campaign must reach its funding goal before milestone proof can be submitted' });
+    // For active campaigns, find out how much cumulative funding is required for this milestone
+    if (campaign.status === 'active') {
+      let cumulativePercentage = 0;
+      const allMilestones = [...campaign.milestones].sort((a, b) => a.order - b.order);
+      for (const m of allMilestones) {
+          cumulativePercentage += m.percentage;
+          if (m._id.toString() === milestoneId) {
+              break;
+          }
+      }
+      
+      const requiredAmount = (cumulativePercentage / 100) * campaign.fundingGoal;
+      
+      if ((campaign.released_amount || 0) < requiredAmount) {
+          return res.status(400).json({ 
+              message: `Milestone funds have not been released. The campaign admin must first release at least Rs. ${requiredAmount.toLocaleString()} (${cumulativePercentage}% of goal) to unlock this milestone submission.` 
+          });
+      }
     }
 
     // Find the milestone
@@ -141,7 +156,9 @@ const getCampaignMilestones = async (req, res) => {
       }
 
       // Calculate fund amount for this milestone
-      milestone.fundAmount = Math.round(campaign.currentAmount * (milestone.percentage / 100));
+      // We calculate this based on the fundingGoal, NOT the currentAmount
+      // This ensures 20% of a 50,000 goal is always 10,000, even if the campaign raised 200,000.
+      milestone.fundAmount = Math.round(campaign.fundingGoal * (milestone.percentage / 100));
       
       return milestone;
     });
@@ -178,7 +195,7 @@ const getMilestoneDetail = async (req, res) => {
     }
 
     const milestoneData = milestone.toObject();
-    milestoneData.fundAmount = Math.round(campaign.currentAmount * (milestone.percentage / 100));
+    milestoneData.fundAmount = Math.round(campaign.fundingGoal * (milestone.percentage / 100));
 
     // Restrict proof files for non-approved milestones (unless creator/admin)
     const isCreator = req.user && campaign.creator.toString() === req.user._id.toString();

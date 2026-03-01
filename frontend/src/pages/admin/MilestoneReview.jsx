@@ -68,7 +68,7 @@ export function MilestoneReview() {
         selectedSubmission.campaign._id,
         selectedSubmission.milestone._id
       );
-      toast.success(`Milestone approved! NPR ${result.fundRelease?.releaseAmount?.toLocaleString() || ''} will be released.`);
+      toast.success('Milestone approved successfully!');
       setSelectedSubmission(null);
       setReviewDetail(null);
       fetchPendingMilestones();
@@ -265,23 +265,7 @@ export function MilestoneReview() {
                   </h3>
                   <p className="text-sm text-slate-500 mb-4">{reviewDetail.milestone.description}</p>
 
-                  <div className="p-4 bg-sky-50 rounded-lg mb-4">
-                    <h4 className="text-sm font-medium text-sky-900 mb-2">Fund Release Calculation</h4>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <p className="text-sky-600">Gross Amount</p>
-                        <p className="font-bold text-lg">NPR {reviewDetail.milestone.fundAmount?.toLocaleString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-sky-600">Platform Fee (5%)</p>
-                        <p className="font-bold text-lg">NPR {reviewDetail.milestone.platformFee?.toLocaleString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-green-600">Release Amount</p>
-                        <p className="font-bold text-lg text-green-700">NPR {reviewDetail.milestone.releaseAmount?.toLocaleString()}</p>
-                      </div>
-                    </div>
-                  </div>
+
 
                   {/* Progress Description */}
                   <div className="mb-4">

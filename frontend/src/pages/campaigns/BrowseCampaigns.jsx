@@ -301,7 +301,7 @@ export function BrowseCampaigns() {
                         
                         <div className="space-y-3">
                           <div className="flex justify-between text-sm">
-                            <span className="font-bold text-slate-900">Rs. {campaign.raised.toLocaleString()}</span>
+                            <span className="font-bold text-slate-900">Total Funded: Rs. {campaign.raised.toLocaleString()}</span>
                             <span className="text-slate-500">{campaign.progress}%</span>
                           </div>
                           <Progress value={campaign.progress} className="h-2" />

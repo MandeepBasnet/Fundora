@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Card, Button, Badge } from '../../components/ui';
 import { DollarSign, TrendingUp, AlertTriangle, FileText, CheckCircle2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { generateReceiptPDF } from '../../utils/receiptGenerator';
 
 export default function FinancialReports() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalVolume: 0,
@@ -44,6 +46,28 @@ export default function FinancialReports() {
         console.error("Failed to load financial reports", error);
     } finally {
         setLoading(false);
+    }
+  };
+
+  const handleDownloadReceipt = (tx) => {
+    try {
+      const formattedTx = {
+         id: tx.transactionId || tx._id,
+         date: new Date(tx.createdAt).toLocaleDateString(),
+         description: `Backing from ${tx.user?.name || 'User'}`,
+         campaignTitle: tx.campaign?.title || 'Unknown Campaign',
+         type: 'Credit',
+         amount: tx.amount,
+         status: tx.status.charAt(0).toUpperCase() + tx.status.slice(1),
+         method: tx.gateway.charAt(0).toUpperCase() + tx.gateway.slice(1),
+         platformFee: 0,
+         netAmount: tx.amount
+      };
+      generateReceiptPDF(formattedTx, user);
+      toast.success('Receipt downloaded');
+    } catch (error) {
+      console.error("Failed to generate PDF", error);
+      toast.error('Error generating receipt');
     }
   };
 
@@ -115,9 +139,6 @@ export default function FinancialReports() {
       <Card className="overflow-hidden border-slate-200">
         <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
             <h3 className="font-bold text-lg text-slate-900">Recent Transactions</h3>
-            <Button variant="outline" size="sm">
-                <FileText className="w-4 h-4 mr-2" /> Export CSV
-            </Button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
@@ -127,8 +148,8 @@ export default function FinancialReports() {
                 <th className="px-6 py-4 font-medium">Campaign</th>
                 <th className="px-6 py-4 font-medium">Backer</th>
                 <th className="px-6 py-4 font-medium">Amount</th>
-                <th className="px-6 py-4 font-medium">Gateway</th>
-                <th className="px-6 py-4 font-medium">Payout Status</th>
+                <th className="px-6 py-4 font-medium">Payment Method & Status</th>
+                <th className="px-6 py-4 font-medium text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -149,17 +170,28 @@ export default function FinancialReports() {
                   <td className="px-6 py-4 font-bold text-slate-900">
                     Rs. {tx.amount.toLocaleString()}
                   </td>
-                  <td className="px-6 py-4 text-slate-500 uppercase text-xs">
-                    {tx.gateway}
-                  </td>
                   <td className="px-6 py-4">
-                    <Badge className={`
-                        ${tx.payoutStatus === 'paid' ? 'bg-green-100 text-green-700 hover:bg-green-100' : 
-                          tx.payoutStatus === 'processing' ? 'bg-blue-100 text-blue-700 hover:bg-blue-100' : 
-                          'bg-orange-100 text-orange-700 hover:bg-orange-100'} border-none uppercase text-[10px]
-                    `}>
-                        {tx.payoutStatus}
-                    </Badge>
+                    <div className="flex flex-col gap-1 items-start">
+                      <Badge variant="outline" className={`
+                        ${tx.status === 'completed' ? 'border-green-200 bg-green-50 text-green-700' : 
+                          tx.status === 'pending' ? 'border-amber-200 bg-amber-50 text-amber-700' : 
+                          'border-red-200 bg-red-50 text-red-700'}
+                      `}>
+                        {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
+                      </Badge>
+                      <span className="text-xs text-slate-500 uppercase">{tx.gateway}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-slate-400 hover:text-sky-600 mx-auto block"
+                      onClick={() => handleDownloadReceipt(tx)}
+                      title="Download PDF Receipt"
+                    >
+                      <FileText className="w-4 h-4" />
+                    </Button>
                   </td>
                 </tr>
               ))}

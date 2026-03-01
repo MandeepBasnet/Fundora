@@ -167,8 +167,17 @@ const getCampaignById = async (req, res) => {
       status: 'completed'
     });
 
+    // Compute milestone fund amounts
+    const campaignObj = campaign.toObject();
+    if (campaignObj.milestones && campaignObj.milestones.length > 0) {
+        campaignObj.milestones = campaignObj.milestones.map(m => ({
+            ...m,
+            fundAmount: Math.round(campaignObj.fundingGoal * (m.percentage / 100))
+        }));
+    }
+
     res.json({
-      ...campaign.toObject(),
+      ...campaignObj,
       isBacked,
       userBackedAmount,
       transactionCount

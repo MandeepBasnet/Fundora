@@ -238,7 +238,7 @@ export function CampaignDetail() {
 
                 <div className="space-y-1">
                   <span className="block text-3xl font-bold text-slate-900">Rs. {campaign.raised.toLocaleString()}</span>
-                  <span className="block text-slate-500 text-sm">pledged of Rs. {campaign.goal.toLocaleString()} goal</span>
+                  <span className="block text-slate-500 text-sm">total funded of Rs. {campaign.goal.toLocaleString()} goal</span>
                 </div>
 
                 <div className="space-y-1">

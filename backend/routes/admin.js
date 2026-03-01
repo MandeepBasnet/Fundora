@@ -26,7 +26,8 @@ const {
   verifyDisbursementEsewa,
   verifyDisbursementKhalti,
   getEligiblePayouts,
-  releaseCampaignFunds
+  releaseCampaignFunds,
+  rollbackDisbursement
 } = require('../controllers/fundReleaseController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -72,5 +73,6 @@ router.post('/fund-releases/campaign/:id', releaseCampaignFunds);
 router.post('/fund-releases/:id/initiate-payment', initiateDisbursementPayment);
 router.post('/fund-releases/verify-esewa', verifyDisbursementEsewa);
 router.post('/fund-releases/verify-khalti', verifyDisbursementKhalti);
+router.post('/fund-releases/:id/rollback', rollbackDisbursement);
 
 module.exports = router;

@@ -195,6 +195,10 @@ const verifyDisbursementEsewa = async (req, res) => {
             campaign: release.campaign._id
         });
 
+        // Send Email Receipt
+        const emailService = require('../utils/emailService');
+        await emailService.sendDisbursementReceiptEmail(release, release.campaign, release.campaign.creator);
+
         res.status(200).json({ message: 'Disbursement successful', release });
     } catch (error) {
         console.error('eSewa Verification Error:', error);
@@ -262,6 +266,10 @@ const verifyDisbursementKhalti = async (req, res) => {
             message: `NPR ${release.amount.toLocaleString()} has been transferred via Khalti. Ref: ${data.transaction_id}`,
             campaign: release.campaign._id
         });
+
+        // Send Email Receipt
+        const emailService = require('../utils/emailService');
+        await emailService.sendDisbursementReceiptEmail(release, release.campaign, release.campaign.creator);
 
         res.status(200).json({ message: 'Disbursement successful', release });
     } catch (error) {
@@ -348,27 +356,47 @@ const getEligiblePayouts = async (req, res) => {
       if (!camp) return null; // Defensive check
 
       const isDonation = camp.fundingType === 'donation-based';
-      const platformFee = isDonation ? 0 : Math.round(agg.grossAvailable * 0.05);
-      const netAmount = agg.grossAvailable - platformFee;
+      const isMilestone = camp.fundingType === 'milestone-based';
+      
+      let platformFee = 0;
+      let netAmount = 0;
+      let grossAvailable = 0;
+
+      if (isMilestone) {
+        // For milestone campaigns, pending transactions don't accurately reflect payout availability
+        // since approveMilestone doesn't strictly link them.
+        // We calculate max releasable based on total funded vs released.
+        grossAvailable = Math.max(0, camp.currentAmount - (camp.released_amount || 0));
+        platformFee = Math.round(grossAvailable * 0.05); // Calculate total remaining theoretical fee
+        netAmount = grossAvailable > 0 ? grossAvailable - platformFee : 0;
+      } else {
+        // For reward/donation, rely on aggregated un-paid transactions
+        grossAvailable = agg.grossAvailable;
+        platformFee = isDonation ? 0 : Math.round(grossAvailable * 0.05);
+        netAmount = grossAvailable > 0 ? grossAvailable - platformFee : 0;
+      }
       
       let pendingMilestonesCount = 0;
-      if (camp.fundingType === 'milestone-based' && camp.milestones) {
-          pendingMilestonesCount = camp.milestones.filter(m => m.status !== 'approved').length;
+      if (isMilestone && camp.milestones) {
+          pendingMilestonesCount = camp.milestones.filter(m => m.status !== 'approved' && m.status !== 'completed').length;
       }
+
+      // Only return if there is actually a net amount to pay out
+      if (netAmount <= 0) return null;
 
       return {
         campaignId: camp._id,
         title: camp.title,
         fundingType: camp.fundingType,
-        totalFunded: camp.currentAmount,
+        totalFunded: camp.currentAmount, // Used for displaying Total Funded
         alreadyReleased: camp.released_amount || 0,
-        grossAvailable: agg.grossAvailable,
+        grossAvailable: isMilestone ? camp.currentAmount - (camp.released_amount || 0) : agg.grossAvailable,
         platformFee,
         netAmount,
         creator: camp.creator,
         pendingMilestonesCount
       };
-    }).filter(Boolean); // Remove nulls if any campaign was deleted
+    }).filter(Boolean); // Remove nulls if any campaign was deleted or netAmount <= 0
 
     res.json(payouts);
 
@@ -378,7 +406,7 @@ const getEligiblePayouts = async (req, res) => {
   }
 };
 
-// @desc    Release funds for non-milestone campaigns
+// @desc    Release funds for campaigns (supports partial/sub-payments)
 // @route   POST /api/admin/fund-releases/campaign/:id
 // @access  Private (Admin only)
 const releaseCampaignFunds = async (req, res) => {
@@ -391,30 +419,68 @@ const releaseCampaignFunds = async (req, res) => {
     }
 
     const overrideMilestone = req.body.overrideMilestone;
+    const requestedAmount = req.body.amount ? parseFloat(req.body.amount) : null;
 
     if (campaign.fundingType === 'milestone-based' && !overrideMilestone) {
       return res.status(400).json({ message: 'Milestone campaigns must be released via milestone review, or explicitly overridden.' });
     }
 
-    // 1. Fetch all pending transactions for this campaign
+    // 1. Fetch pending transactions as baseline available funds
     const pendingTransactions = await Transaction.find({
       campaign: campaignId,
       status: 'completed',
       payoutStatus: 'pending'
     });
 
-    if (pendingTransactions.length === 0) {
+    // 2. Determine max available
+    let maxAvailable = 0;
+    
+    if (campaign.fundingType === 'milestone-based') {
+       // Milestone campaigns calculate availability based on overall progress
+       maxAvailable = Math.max(0, campaign.currentAmount - (campaign.released_amount || 0));
+    } else {
+       // Rewards/Donations base it strictly on untransferred transactions
+       maxAvailable = pendingTransactions.reduce((acc, tx) => acc + tx.amount, 0);
+    }
+    
+    if (maxAvailable <= 0) {
       return res.status(400).json({ message: 'No available funds to release' });
     }
 
-    const grossAvailable = pendingTransactions.reduce((acc, tx) => acc + tx.amount, 0);
-    const transactionIds = pendingTransactions.map(tx => tx._id);
+    // Calculate gross amount taking into account user's custom amount override
+    let grossAvailable = maxAvailable;
+
+    if (requestedAmount && requestedAmount > 0) {
+       // The requestedAmount typically represents the targeted Net Amount the admin typed in,
+       // OR the admin wants to release a specific Gross Amount. 
+       // Often, admin inputs "I want to release exactly X net".
+       // Let's assume req.body.amount is the requested NET amount.
+       const isDonation = campaign.fundingType === 'donation-based';
+       const targetNet = requestedAmount;
+       
+       // gross = net / 0.95
+       const targetGross = isDonation ? targetNet : Math.round(targetNet / 0.95);
+       
+       if (targetGross > maxAvailable) {
+         return res.status(400).json({ 
+           message: `Requested amount exceeds available limit. Max Net Releasable is NPR ${isDonation ? maxAvailable : Math.floor(maxAvailable * 0.95)}`
+         });
+       }
+       grossAvailable = targetGross;
+    }
 
     const isDonation = campaign.fundingType === 'donation-based';
     const platformFee = isDonation ? 0 : Math.round(grossAvailable * 0.05);
     const netAmount = grossAvailable - platformFee;
 
-    // 2. Create Fund Release Record
+    // We only attach specific transaction IDs for non-milestone campaigns
+    // For milestone campaigns, tracking individual transactions adds huge complexity during partial payouts
+    let transactionIds = [];
+    if (campaign.fundingType !== 'milestone-based') {
+        transactionIds = pendingTransactions.map(tx => tx._id);
+    }
+
+    // 3. Create Fund Release Record
     const fundRelease = await FundRelease.create({
       campaign: campaign._id,
       grossAmount: grossAvailable,
@@ -426,14 +492,16 @@ const releaseCampaignFunds = async (req, res) => {
       transactions: transactionIds
     });
 
-    // 3. Mark Transactions as Processing
-    await Transaction.updateMany(
-      { _id: { $in: transactionIds } },
-      { $set: { payoutStatus: 'processing' } }
-    );
+    // 4. Mark Transactions as Processing
+    if (transactionIds.length > 0) {
+      await Transaction.updateMany(
+        { _id: { $in: transactionIds } },
+        { $set: { payoutStatus: 'processing' } }
+      );
+    }
 
     // Update Campaign (sync legacy field just in case)
-    campaign.released_amount = (campaign.released_amount || 0) + netAmount;
+    campaign.released_amount = (campaign.released_amount || 0) + grossAvailable;
     await campaign.save();
 
     // Create Notification
@@ -456,6 +524,49 @@ const releaseCampaignFunds = async (req, res) => {
   }
 };
 
+// @desc    Rollback a fund release
+// @route   POST /api/admin/fund-releases/:id/rollback
+// @access  Private (Admin only)
+const rollbackDisbursement = async (req, res) => {
+  try {
+    const release = await FundRelease.findById(req.params.id);
+
+    if (!release) {
+      return res.status(404).json({ message: 'Fund release not found' });
+    }
+
+    if (release.disbursementStatus === 'completed') {
+      return res.status(400).json({ message: 'Cannot rollback a completed disbursement' });
+    }
+
+    const campaign = await Campaign.findById(release.campaign);
+    if (!campaign) {
+      return res.status(404).json({ message: 'Associated campaign not found' });
+    }
+
+    // Decrement the released_amount 
+    // We adjust by grossAmount because in releaseCampaignFunds we incremented by grossAvailable
+    campaign.released_amount = Math.max(0, (campaign.released_amount || 0) - release.grossAmount);
+    await campaign.save();
+
+    // Revert associated transactions if any
+    if (release.transactions && release.transactions.length > 0) {
+      await Transaction.updateMany(
+        { _id: { $in: release.transactions } },
+        { $set: { payoutStatus: 'pending' } }
+      );
+    }
+
+    // Delete the fund release record
+    await FundRelease.findByIdAndDelete(release._id);
+
+    res.json({ message: 'Disbursement rolled back successfully' });
+  } catch (error) {
+    console.error('Rollback disbursement error:', error);
+    res.status(500).json({ message: 'Server error rolling back disbursement' });
+  }
+};
+
 module.exports = {
   getFundReleaseHistory,
   initiateDisbursementPayment,
@@ -463,5 +574,6 @@ module.exports = {
   verifyDisbursementKhalti,
   getAllFundReleases,
   getEligiblePayouts,
-  releaseCampaignFunds
+  releaseCampaignFunds,
+  rollbackDisbursement
 };
