@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  CheckCircle2, XCircle, AlertTriangle, Eye, Filter, Search, ShieldAlert, X, Flag, MessageSquare, Ban
+  CheckCircle2, XCircle, AlertTriangle, Eye, Filter, Search, ShieldAlert, X, Flag, MessageSquare, Ban, Users, TrendingUp
 } from 'lucide-react';
 import { Button, Card, Badge, Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui';
 import api from '../../services/api';
@@ -9,6 +9,8 @@ import toast from 'react-hot-toast';
 export function Moderation() {
   const [activeTab, setActiveTab] = useState('pending');
   const [flags, setFlags] = useState([]);
+  const [userStats, setUserStats] = useState([]);
+  const [campaignStats, setCampaignStats] = useState([]);
   const [loading, setLoading] = useState(true);
   
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -26,24 +28,30 @@ export function Moderation() {
   const fetchFlags = async () => {
     setLoading(true);
     try {
-      // If pending tab, fetch pending and under_review. If resolved, fetch resolved and dismissed.
-      let statusQuery = activeTab === 'pending' ? 'pending,under_review' : 'resolved,dismissed';
-      
-      // In this app, our API allows one status. Let's fetch all and filter client side for better UX or we can change API.
-      // Since API might only take one status, let's fetch all and filter here.
-      const res = await api.get('/flags/admin');
-      
-      if (res.data.success) {
-        const allFlags = res.data.data;
-        if (activeTab === 'pending') {
-          setFlags(allFlags.filter(f => ['pending', 'under_review'].includes(f.status)));
-        } else {
-          setFlags(allFlags.filter(f => ['resolved', 'dismissed'].includes(f.status)));
+      if (activeTab === 'users') {
+        const res = await api.get('/flags/admin/users');
+        if (res.data.success) {
+          setUserStats(res.data.data);
+        }
+      } else if (activeTab === 'campaigns') {
+        const res = await api.get('/flags/admin/campaigns');
+        if (res.data.success) {
+          setCampaignStats(res.data.data);
+        }
+      } else {
+        const res = await api.get('/flags/admin');
+        if (res.data.success) {
+          const allFlags = res.data.data;
+          if (activeTab === 'pending') {
+            setFlags(allFlags.filter(f => ['pending', 'under_review'].includes(f.status)));
+          } else if (activeTab === 'resolved') {
+            setFlags(allFlags.filter(f => ['resolved', 'dismissed'].includes(f.status)));
+          }
         }
       }
     } catch (error) {
-      console.error('Failed to fetch flags:', error);
-      toast.error('Failed to load moderation queue');
+      console.error('Failed to fetch stats/flags:', error);
+      toast.error('Failed to load moderation data');
     } finally {
       setLoading(false);
     }
@@ -86,6 +94,23 @@ export function Moderation() {
     }
   };
 
+  const handleRestoreCampaign = async (campaignId) => {
+    if (!window.confirm("Are you sure you want to restore this campaign? This will dismiss all its pending active flags and penalize the reporters.")) {
+      return;
+    }
+
+    try {
+      const res = await api.patch(`/flags/admin/campaigns/${campaignId}/restore`);
+      if (res.data.success) {
+        toast.success('Campaign restored successfully');
+        fetchFlags(); // Refresh data
+      }
+    } catch (error) {
+      console.error('Restore error:', error);
+      toast.error(error.response?.data?.message || 'Failed to restore campaign');
+    }
+  };
+
   const getRiskColor = (count) => {
     if (count >= 5) return 'border-red-200 bg-red-50 text-red-700';
     if (count >= 3) return 'border-amber-200 bg-amber-50 text-amber-700';
@@ -111,6 +136,12 @@ export function Moderation() {
           </TabsTrigger>
           <TabsTrigger value="resolved" className="data-[state=active]:bg-green-50 data-[state=active]:text-green-700">
             Resolved 
+          </TabsTrigger>
+          <TabsTrigger value="users" className="data-[state=active]:bg-slate-100 data-[state=active]:text-slate-800">
+            User Stats
+          </TabsTrigger>
+          <TabsTrigger value="campaigns" className="data-[state=active]:bg-slate-100 data-[state=active]:text-slate-800">
+            Campaign Stats
           </TabsTrigger>
         </TabsList>
 
@@ -186,6 +217,7 @@ export function Moderation() {
                       <th className="px-6 py-4">Outcome</th>
                       <th className="px-6 py-4">Action Taken</th>
                       <th className="px-6 py-4">Resolved Date</th>
+                      <th className="px-6 py-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -210,6 +242,11 @@ export function Moderation() {
                         <td className="px-6 py-4 text-slate-600">
                           {flag.resolvedAt ? new Date(flag.resolvedAt).toLocaleDateString() : 'N/A'}
                         </td>
+                        <td className="px-6 py-4 text-right">
+                          <Button size="sm" variant="outline" onClick={() => handleOpenReview(flag)}>
+                            <Eye className="w-4 h-4 mr-2" /> View Details
+                          </Button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -218,6 +255,134 @@ export function Moderation() {
             )}
           </Card>
         </TabsContent>
+
+        <TabsContent value="users">
+          <Card className="border-slate-200 shadow-sm overflow-hidden min-h-[400px]">
+            {loading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-600"></div>
+              </div>
+            ) : userStats.length === 0 ? (
+               <div className="flex flex-col items-center justify-center p-12 text-center text-slate-500">
+                 <Users className="w-12 h-12 mb-4 text-slate-300" />
+                 <h3 className="text-lg font-medium text-slate-900">No User Data</h3>
+                 <p>No flags have been submitted by any users yet.</p>
+               </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
+                    <tr>
+                      <th className="px-6 py-4">User</th>
+                      <th className="px-6 py-4 text-center">Total Reports Submitted</th>
+                      <th className="px-6 py-4 text-center border-l border-slate-200">False/Malicious Reports</th>
+                      <th className="px-6 py-4">Account Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {userStats.map((user) => (
+                      <tr key={user._id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="font-bold text-slate-900">{user.name}</div>
+                          <div className="text-slate-500 text-xs">{user.email}</div>
+                        </td>
+                        <td className="px-6 py-4 text-center font-medium text-slate-700">
+                          {user.totalSubmitted}
+                        </td>
+                        <td className="px-6 py-4 text-center border-l text-red-600 font-bold border-slate-100">
+                          {user.falseFlags}
+                        </td>
+                        <td className="px-6 py-4">
+                          <Badge variant={user.status === 'restricted' ? 'destructive' : 'outline'} className={user.status === 'restricted' ? '' : 'text-green-600 border-green-200 bg-green-50'}>
+                            {user.status === 'restricted' ? 'Flagging Restricted' : 'Active'}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="campaigns">
+          <Card className="border-slate-200 shadow-sm overflow-hidden min-h-[400px]">
+             {loading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-600"></div>
+              </div>
+            ) : campaignStats.length === 0 ? (
+               <div className="flex flex-col items-center justify-center p-12 text-center text-slate-500">
+                 <TrendingUp className="w-12 h-12 mb-4 text-slate-300" />
+                 <h3 className="text-lg font-medium text-slate-900">No Campaign Data</h3>
+                 <p>No campaigns currently have any flags associated with them.</p>
+               </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
+                    <tr>
+                      <th className="px-6 py-4">Campaign</th>
+                      <th className="px-6 py-4 text-center">Total Flags (All-Time)</th>
+                      <th className="px-6 py-4 text-center">Active Flags (Unresolved)</th>
+                      <th className="px-6 py-4 text-center">Dismissed</th>
+                      <th className="px-6 py-4 text-center">Upheld Reports</th>
+                      <th className="px-6 py-4">Creator</th>
+                      <th className="px-6 py-4 text-center border-l w-32 border-slate-200">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {campaignStats.map((camp) => (
+                      <tr key={camp._id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="font-bold text-slate-900">{camp.title}</div>
+                          <div className="text-slate-500 text-xs">{camp.category} • <span className="capitalize">{camp.status}</span></div>
+                        </td>
+                        <td className="px-6 py-4 text-center font-bold text-slate-800">
+                          {camp.totalFlags}
+                        </td>
+                        <td className="px-6 py-4 text-center border-l border-slate-100">
+                          {camp.activeFlags > 0 ? (
+                            <Badge variant="outline" className={getRiskColor(camp.activeFlags)}>
+                              {camp.activeFlags}
+                            </Badge>
+                          ) : (
+                            <span className="text-slate-400">0</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-center text-slate-500 font-medium">
+                          {camp.dismissedFlags}
+                        </td>
+                        <td className="px-6 py-4 text-center text-red-600 font-medium border-r border-slate-100">
+                          {camp.upheldFlags}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-slate-900 font-medium text-sm">{camp.creator?.name || 'Unknown'}</div>
+                          <div className="text-slate-500 text-xs">{camp.creator?.email || 'N/A'}</div>
+                        </td>
+                        <td className="px-6 py-4 text-center border-l border-slate-50 w-32">
+                          {camp.status === 'suspended' ? (
+                            <Button 
+                              variant="outline" 
+                              onClick={() => handleRestoreCampaign(camp._id)}
+                              className="w-full text-xs font-bold border-emerald-500 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+                            >
+                              Restore
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-slate-400 block whitespace-nowrap">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </TabsContent>
+
       </Tabs>
 
       {/* Report Review Modal */}
@@ -289,6 +454,34 @@ export function Moderation() {
                 <div className="space-y-6">
                   <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-3">Resolution Actions</h3>
                   
+                  {['resolved', 'dismissed'].includes(selectedReport.status) ? (
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-5 mt-2">
+                       <h4 className="text-sm font-semibold text-slate-500 mb-4 uppercase tracking-wider">Historical Decision</h4>
+                       
+                       <div className="grid grid-cols-2 gap-4 mb-4">
+                         <div>
+                           <div className="text-xs text-slate-500 mb-1">Status</div>
+                           <Badge variant={selectedReport.status === 'dismissed' ? 'outline' : 'default'} className={selectedReport.status === 'dismissed' ? 'border-slate-300 text-slate-600' : 'bg-red-600'}>
+                             {selectedReport.status.toUpperCase()}
+                           </Badge>
+                         </div>
+                         <div>
+                           <div className="text-xs text-slate-500 mb-1">Action Taken</div>
+                           <div className="text-sm font-medium text-slate-800 capitalize">
+                             {selectedReport.resolutionAction ? selectedReport.resolutionAction.replace('_', ' ') : 'None'}
+                           </div>
+                         </div>
+                       </div>
+                       
+                       <div className="pt-4 border-t border-slate-200">
+                         <div className="text-xs text-slate-500 mb-2">Admin Comments</div>
+                         <div className="text-sm text-slate-700 bg-white p-3 rounded border border-slate-200 whitespace-pre-wrap">
+                           {selectedReport.adminComments || 'No comments provided.'}
+                         </div>
+                       </div>
+                    </div>
+                  ) : (
+                    <>
                   <div className="space-y-3">
                     <button 
                       onClick={() => setResolutionAction('none')}
@@ -376,19 +569,25 @@ export function Moderation() {
                       rows="4"
                     ></textarea>
                   </div>
+                  </>
+                  )}
                 </div>
               </div>
             </div>
 
             <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setShowReviewModal(false)} disabled={isResolving}>Cancel</Button>
-              <Button 
-                onClick={handleResolveFlag}
-                disabled={isResolving || !adminComments}
-                className="bg-slate-900 text-white hover:bg-slate-800"
-              >
-                {isResolving ? 'Saving...' : 'Save Resolution'}
+              <Button variant="outline" onClick={() => setShowReviewModal(false)} disabled={isResolving}>
+                {['resolved', 'dismissed'].includes(selectedReport.status) ? 'Close' : 'Cancel'}
               </Button>
+              {!['resolved', 'dismissed'].includes(selectedReport.status) && (
+                <Button 
+                  onClick={handleResolveFlag}
+                  disabled={isResolving || !adminComments}
+                  className="bg-slate-900 text-white hover:bg-slate-800"
+                >
+                  {isResolving ? 'Saving...' : 'Save Resolution'}
+                </Button>
+              )}
             </div>
           </Card>
         </div>

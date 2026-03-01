@@ -46,32 +46,33 @@ These features are fully implemented with both frontend and backend logic.
 - Post Comments on Campaigns
 - Post Campaign Updates (Creators)
 
-### ⚠️ Partially Implemented / Frontend Only
-These features have frontend UI components (pages, modals, or mockups) but lack backend logic or full integration.
-
-**1. Milestone System**
+**7. Milestone System**
 - **Milestone Submission:** Frontend modal exists, but submission logic is missing.
 - **Fund Release:** No backend logic to calculate or release funds based on milestones.
 - **Proof Upload:** Missing implementation.
 
-**2. Safety & Moderation**
-- **Flagging:** Campaign flagging modal exists, but backend logic to store flags is missing.
-- **Moderation:** No admin tools to review flags.
 
-**3. Communication (Mockups)**
+**8. Safety & Moderation**
+- **Flagging:** Users can flag campaigns with reason and evidence uploads.
+- **Moderation Action:** Admin can uphold (Warn, Suspend, Terminate) or dismiss flags.
+- **False Flag Penalization:**
+  - If an Admin dismisses a flagged report and marks it as *Malicious/Spam*, the reporting user receives a penalty strike (`falseFlagCount` increases by 1).
+  - A user can incur up to 2 penalty strikes without immediate consequence.
+  - Upon receiving their **3rd penalty strike**, the system automatically restricts their account from submitting any further flags for exactly **30 days**.
+- **Admin Stats:** Moderation API exposes user false flag count tables and campaign high-risk tables.
+
+### ⚠️ Partially Implemented / Frontend Only
+These features have frontend UI components (pages, modals, or mockups) but lack backend logic or full integration.
+
+
+
+**9. Communication (Mockups)**
 - **Real-Time Messaging:** `Messages.jsx` exists but uses mock data. No real-time backend.
 - **Notifications:** `NotificationDropdown.jsx` exists but uses mock data.
 
-**4. Admin Settings**
+**10. Admin Settings**
 - **Platform Settings:** Page exists, but settings are not saved to backend.
 
-### ❌ Pending / Missing Features
-These features are currently not implemented.
-
-- **Payments:** Receipt Generation (PDF), Refund Processing.
-- **Social:** Reply to comments, Edit/Delete comments.
-- **Analytics:** Detailed Campaign Analytics, Export Reports.
-- **Advanced Admin:** Content Moderation tools, Activity Logs.
 
 ---
 

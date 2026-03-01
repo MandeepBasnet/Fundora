@@ -13,3 +13,9 @@ Thumbs.db
 backend/scripts/seedData.js
 backend/scripts/generateTestData.js
 backend/scripts/resetFinances.js
+
+# Custom exclusions
+backend/coverage/
+backend/tests/
+backend/app.js
+sprints_documentation/

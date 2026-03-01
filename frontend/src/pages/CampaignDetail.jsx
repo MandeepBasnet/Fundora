@@ -58,7 +58,9 @@ export function CampaignDetail() {
           creatorAvatar: c.creator?.profile?.avatar,
           location: c.creator?.profile?.address?.city || 'Nepal', // Fallback
           isBacked: c.isBacked || false,
-          userBackedAmount: c.userBackedAmount || 0
+          userBackedAmount: c.userBackedAmount || 0,
+          status: c.status,
+          rejectionReason: c.rejectionReason || null
         };
         
         setCampaign(mappedCampaign);
@@ -103,6 +105,25 @@ export function CampaignDetail() {
 
   return (
     <div className="min-h-screen bg-white relative">
+      {/* Termination Notice */}
+      {campaign.status === 'terminated' && (
+        <div className="bg-red-50 border-b-2 border-red-500 p-6 flex items-start gap-4">
+          <AlertTriangle className="w-8 h-8 text-red-600 shrink-0 mt-1" />
+          <div>
+            <h2 className="text-xl font-bold text-red-800 mb-1">Campaign Terminated</h2>
+            <p className="text-red-700 font-medium">
+              This campaign has been terminated by Trust & Safety due to a violation of our terms of service.
+              All backers have been automatically refunded.
+            </p>
+            {campaign.rejectionReason && (
+              <div className="mt-3 bg-white/60 p-3 rounded border border-red-200 text-red-800 text-sm">
+                <strong>Official Reason:</strong> {campaign.rejectionReason}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* 1. Header Section */}
       <div className="bg-white pt-8 md:pt-12 pb-8 border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-10">

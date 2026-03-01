@@ -192,7 +192,7 @@ const sendPasswordResetEmail = async (email, otp, name) => {
 
 // --- FLAGGING & MODERATION EMAILS ---
 
-const sendFlagReceivedEmail = async (email, campaignTitle) => {
+const sendFlagReceivedEmail = async (email, campaignTitle, userStats) => {
   const mailOptions = {
     from: process.env.EMAIL_FROM || `Fundora <${process.env.SMTP_USER}>`,
     to: email,
@@ -201,6 +201,15 @@ const sendFlagReceivedEmail = async (email, campaignTitle) => {
       <h2>Fundora Moderation Team</h2>
       <p>Thank you for your report regarding the campaign <strong>"${campaignTitle}"</strong>.</p>
       <p>We've received your flag and it is currently under review by our moderation team. We'll notify you once a decision is made.</p>
+      
+      <div style="background-color: #f1f5f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #475569; font-size: 14px;">Your Reporting Activity</h3>
+        <p style="margin: 5px 0; font-size: 13px; color: #64748b;">Total Reports Submitted: <strong>${userStats?.totalFlags || 1}</strong></p>
+        <p style="margin: 5px 0; font-size: 13px; color: ${userStats?.falseFlags > 0 ? '#ef4444' : '#10b981'};">
+          False/Malicious Reports: <strong>${userStats?.falseFlags || 0}</strong>
+        </p>
+        ${userStats?.falseFlags > 0 ? `<p style="margin: 5px 0; font-size: 12px; color: #ef4444;"><em>Note: 3 false reports will result in a 30-day restriction from submitting flags.</em></p>` : ''}
+      </div>
       <br>
       <p>Regards,<br>Fundora Trust & Safety</p>
     `
@@ -208,23 +217,34 @@ const sendFlagReceivedEmail = async (email, campaignTitle) => {
   return transporter.sendMail(mailOptions);
 };
 
-const sendFlagResolutionEmail = async (email, campaignTitle, outcome, explanation) => {
+const sendCreatorFlagAlertEmail = async (email, campaignTitle, activeFlagCount) => {
   const mailOptions = {
     from: process.env.EMAIL_FROM || `Fundora <${process.env.SMTP_USER}>`,
     to: email,
-    subject: `Report Update: ${outcome} - Fundora`,
+    subject: `Alert: New Report Submitted - "${campaignTitle}"`,
     html: `
-      <h2>Fundora Moderation Team</h2>
-      <p>We've reviewed your report regarding the campaign <strong>"${campaignTitle}"</strong>.</p>
-      <p><strong>Outcome:</strong> ${outcome}</p>
-      <p><strong>Reason/Details:</strong> ${explanation || 'Our moderation team has taken appropriate action based on our community guidelines.'}</p>
+      <h2>Fundora Trust & Safety</h2>
+      <p>A new flag/report has been submitted against your campaign <strong>"${campaignTitle}"</strong>.</p>
+      
+      <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #92400e; font-size: 14px;">Campaign Status</h3>
+        <p style="margin: 5px 0; font-size: 13px; color: #b45309;">
+          Total Active (Unresolved) Flags: <strong>${activeFlagCount}</strong>
+        </p>
+        <p style="margin: 5px 0; font-size: 12px; color: #d97706;">
+          <em>Note: Campaigns with a high number of active flags may be temporarily suspended pending moderation review.</em>
+        </p>
+      </div>
+      
+      <p>Our moderation team is currently reviewing the report. We will notify you of the outcome once a decision has been reached.</p>
       <br>
-      <p>Thank you for keeping our community safe.</p>
-      <p>Regards,<br>Fundora Trust & Safety</p>
+      <p>Regards,<br>Fundora Moderation Team</p>
     `
   };
   return transporter.sendMail(mailOptions);
 };
+
+// --- Moderation Action Emails ---
 
 const sendCreatorWarningEmail = async (email, warningLevel, explanation) => {
   const mailOptions = {
@@ -425,6 +445,23 @@ const sendDisbursementReceiptEmail = async (release, campaign, creator) => {
     throw error;
   }
 };
+const sendFlagActionUpdateEmail = async (emails, campaignTitle, outcome, explanation) => {
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || `Fundora <${process.env.SMTP_USER}>`,
+    to: emails.join(', '),
+    subject: `Report Update: ${outcome} - Fundora`,
+    html: `
+      <h2>Fundora Moderation Team</h2>
+      <p>A report regarding the campaign <strong>"${campaignTitle}"</strong> has been resolved.</p>
+      <p><strong>Outcome:</strong> ${outcome}</p>
+      <p><strong>Reason/Details:</strong> ${explanation || 'Our moderation team has taken appropriate action based on our community guidelines.'}</p>
+      <br>
+      <p>Thank you for helping keep our community safe.</p>
+      <p>Regards,<br>Fundora Trust & Safety</p>
+    `
+  };
+  return transporter.sendMail(mailOptions);
+};
 
 module.exports = {
   generateOTP,
@@ -432,9 +469,10 @@ module.exports = {
   sendPasswordResetEmail,
   verifyEmailConnection,
   sendFlagReceivedEmail,
-  sendFlagResolutionEmail,
   sendCreatorWarningEmail,
   sendCampaignTerminatedEmail,
   sendReceiptEmail,
-  sendDisbursementReceiptEmail
+  sendDisbursementReceiptEmail,
+  sendFlagActionUpdateEmail,
+  sendCreatorFlagAlertEmail
 };

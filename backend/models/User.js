@@ -60,6 +60,9 @@ const userSchema = new mongoose.Schema({
   flaggingRestrictedUntil: {
     type: Date
   },
+  suspendedUntil: {
+    type: Date
+  },
   isBanned: {
     type: Boolean,
     default: false

@@ -5,7 +5,10 @@ const upload = require('../middleware/uploadMiddleware');
 const {
   createFlag,
   getAdminFlags,
-  resolveFlag
+  resolveFlag,
+  getAdminUserFlagStats,
+  getAdminCampaignFlagStats,
+  restoreCampaign
 } = require('../controllers/flagController');
 
 // @route   POST /api/flags
@@ -22,5 +25,20 @@ router.get('/admin', protect, authorize('admin'), getAdminFlags);
 // @desc    Admin resolves a flag (uphold or dismiss)
 // @access  Private/Admin
 router.patch('/admin/:id/resolve', protect, authorize('admin'), resolveFlag);
+
+// @route   GET /api/flags/admin/users
+// @desc    Get user flag statistics
+// @access  Private/Admin
+router.get('/admin/users', protect, authorize('admin'), getAdminUserFlagStats);
+
+// @route   GET /api/flags/admin/campaigns
+// @desc    Get campaign flag statistics
+// @access  Private/Admin
+router.get('/admin/campaigns', protect, authorize('admin'), getAdminCampaignFlagStats);
+
+// @route   PATCH /api/flags/admin/campaigns/:id/restore
+// @desc    Admin restores a suspended campaign
+// @access  Private/Admin
+router.patch('/admin/campaigns/:id/restore', protect, authorize('admin'), restoreCampaign);
 
 module.exports = router;
