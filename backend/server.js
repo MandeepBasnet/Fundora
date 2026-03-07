@@ -14,6 +14,10 @@ const paymentRoutes = require('./routes/payment');
 const notificationRoutes = require('./routes/notification');
 const flagRoutes = require('./routes/flagRoutes');
 const financeRoutes = require('./routes/finance');
+const messageRoutes = require('./routes/messages');
+const { Server } = require('socket.io');
+const { initializeSocket } = require('./utils/socketHandlers');
+const { startCronJobs } = require('./utils/cronJobs');
 
 const app = express();
 
@@ -36,6 +40,7 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/flags', flagRoutes);
 app.use('/api/finances', financeRoutes);
+app.use('/api/messages', messageRoutes);
 
 // Base route
 app.get('/', (req, res) => {
@@ -47,6 +52,18 @@ const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+// Setup Socket.io
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+});
+initializeSocket(io);
+
+// Start Background Jobs
+startCronJobs();
 
 // Increase timeout for large file uploads (2 minutes)
 server.timeout = 120000;

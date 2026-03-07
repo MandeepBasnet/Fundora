@@ -382,15 +382,34 @@ export function CampaignDetail() {
                   </div>
                   <p className="text-sm text-slate-600 mb-4">We are a team of agricultural engineers and software developers passionate about modernizing farming.</p>
                   
-                  <div className="flex gap-2">
-                    <Button variant="outline" className="flex-1 text-sm" asChild>
-                      <Link to="/messages" className="flex items-center justify-center gap-2 w-full h-full">
-                        <MessageCircle className="w-4 h-4" /> Message
-                      </Link>
-                    </Button>
-                    <Button variant="link" className="flex-1 text-sky-600 font-bold hover:text-blue-700 hover:no-underline text-sm">
-                      See more projects
-                    </Button>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
+                       {campaign.isBacked ? (
+                         <Button variant="outline" className="flex-1 text-sm bg-white hover:bg-slate-50 border-sky-200 text-sky-700" onClick={async () => {
+                            try {
+                              const creatorId = campaign.creator?._id || campaign.creator;
+                              const res = await api.post('/messages/initiate', { campaignId: campaign.id, creatorId });
+                              if (res.data.success) {
+                                navigate(`/messages/${res.data.data._id}`);
+                              }
+                            } catch (e) { console.error('Error initiating chat', e); }
+                         }}>
+                           <MessageCircle className="w-4 h-4 mr-2" /> Message Creator
+                         </Button>
+                       ) : (
+                         <Button variant="outline" disabled className="flex-1 text-sm opacity-50 cursor-not-allowed">
+                           <MessageCircle className="w-4 h-4 mr-2" /> Message (Backers Only)
+                         </Button>
+                       )}
+                      <Button variant="link" className="flex-1 text-sky-600 font-bold hover:text-blue-700 hover:no-underline text-sm">
+                        See more projects
+                      </Button>
+                    </div>
+                    {campaign.isBacked && (
+                      <p className="text-center text-[10px] text-slate-400">
+                        Typical response time: ~1 hour
+                      </p>
+                    )}
                   </div>
                 </div>
 

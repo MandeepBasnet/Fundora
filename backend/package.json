@@ -12,7 +12,10 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "testMatch": ["**/tests/**/*.test.js", "**/tests/**/*.test.js"],
+    "testMatch": [
+      "**/tests/**/*.test.js",
+      "**/tests/**/*.test.js"
+    ],
     "testTimeout": 60000
   },
   "dependencies": {
@@ -25,7 +28,9 @@
     "mongoose": "^9.0.1",
     "multer": "^2.0.2",
     "multer-storage-cloudinary": "^4.0.0",
-    "nodemailer": "^7.0.12"
+    "node-cron": "^4.2.1",
+    "nodemailer": "^7.0.12",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "cross-env": "^10.1.0",

@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Menu, X, Bell, User, LogOut, LayoutDashboard } from 'lucide-react';
+import { Search, Menu, X, Bell, User, LogOut, LayoutDashboard, MessageCircle } from 'lucide-react';
 import { Button, Input } from './ui';
 import { FundoraLogo } from './FundoraLogo';
 import { NotificationDropdown } from './NotificationDropdown';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext';
 
 export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -14,6 +15,8 @@ export function Navbar() {
   const profileRef = useRef(null);
   const navigate = useNavigate();
   const { user: authUser, logout } = useAuth();
+  const socketContext = useSocket();
+  const unreadCount = socketContext ? socketContext.unreadCount : 0;
 
   // Get role-specific dashboard URL
   const getDashboardUrl = () => {
@@ -79,6 +82,17 @@ export function Navbar() {
             <Link to={getDashboardUrl()} className="hidden md:block text-sm font-medium text-gray-700 hover:text-sky-600 transition-colors">
               Dashboard
             </Link>
+
+            {authUser && (
+              <Link to="/messages" className="p-2 text-gray-700 hover:text-sky-600 transition-colors relative" title="Messages">
+                <MessageCircle className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-0 w-4 h-4 bg-sky-600 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Link>
+            )}
             
             <div className="relative" ref={notifRef}>
               <button 
