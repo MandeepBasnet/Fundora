@@ -1,7 +1,8 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Search, Filter, ExternalLink, MessageSquare, Download, Package } from 'lucide-react';
 import { Button, Card, Input, Badge, Progress, Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui';
+import api from '../../services/api';
 
 export function SupportedProjects() {
   // State
@@ -25,6 +26,7 @@ export function SupportedProjects() {
                 id: c._id,
                 title: c.title,
                 creator: c.creator?.name || 'Unknown Creator',
+                creatorId: c.creator?._id || c.creator,
                 amountBacked: c.amountBacked || 0, // This comes from my custom controller logic
                 progress: progress,
                 daysLeft: daysLeft,
@@ -95,6 +97,21 @@ export function SupportedProjects() {
 }
 
 function ProjectCard({ project }) {
+  const navigate = useNavigate();
+
+  const handleMessageCreator = async () => {
+    try {
+      const res = await api.post('/messages/initiate', { campaignId: project.id, creatorId: project.creatorId });
+      if (res.data.success) {
+        navigate(`/dashboard/messages/${res.data.data._id}`);
+      }
+    } catch (e) { 
+      console.error('Error initiating chat', e); 
+      const errMsg = e.response?.data?.backendError || e.response?.data?.message || e.message;
+      alert(`Failed to initiate conversation: ${errMsg}`);
+    }
+  };
+
   return (
     <Card className="p-6 border-slate-200 hover:shadow-md transition-shadow">
       <div className="flex flex-col md:flex-row gap-6">
@@ -160,7 +177,7 @@ function ProjectCard({ project }) {
       </div>
 
       <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap gap-3 justify-end">
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" onClick={handleMessageCreator}>
           <MessageSquare className="w-4 h-4 mr-2" /> Message Creator
         </Button>
         <Button size="sm" className="bg-sky-600 hover:bg-sky-700 text-white">

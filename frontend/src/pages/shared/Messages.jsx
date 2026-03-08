@@ -16,6 +16,17 @@ export function Messages() {
   const { user } = useAuth();
   const { socket, setUnreadCount, onlineUsersMap } = useSocket();
 
+  const getMessagesBasePath = () => {
+    if (user?.role === 'creator') return '/creator/messages';
+    return '/dashboard/messages';
+  };
+
+  // Helper: safely find the OTHER participant (not the current user)
+  const getOtherUser = (participants) => {
+    if (!participants || participants.length === 0) return {};
+    return participants.find(p => p._id?.toString() !== (user?._id || user?.id)?.toString()) || participants[0];
+  };
+
   const [conversations, setConversations] = useState([]);
   const [activeConv, setActiveConv] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -130,7 +141,7 @@ export function Messages() {
     };
 
     const handleTyping = ({ userId, isTyping: typingData }) => {
-      if (userId !== user?.id) {
+      if (userId !== (user?._id || user?.id)) {
         setRemoteTyping(typingData);
       }
     };
@@ -197,7 +208,7 @@ export function Messages() {
       try {
         await api.put(`/messages/${activeConv._id}/block`);
         alert("User blocked successfully.");
-        navigate('/messages');
+        navigate(getMessagesBasePath());
       } catch (e) {
         console.error(e);
       }
@@ -208,7 +219,7 @@ export function Messages() {
   const exportPDF = () => {
     if (!activeConv || messages.length === 0) return;
     const doc = new jsPDF();
-    const otherParticipant = activeConv.participants.find(p => p._id !== user.id) || {};
+    const otherParticipant = getOtherUser(activeConv.participants);
     
     doc.setFontSize(16);
     doc.text(`Conversation with ${otherParticipant.name}`, 14, 20);
@@ -273,14 +284,14 @@ export function Messages() {
             </div>
           ) : (
             conversations.map((conv) => {
-              const otherUser = conv.participants.find(p => p._id !== user.id) || conv.participants[0];
+              const otherUser = getOtherUser(conv.participants);
               const isUnread = conv.unreadCount > 0;
               const isOnline = onlineUsersMap && onlineUsersMap[otherUser._id];
               
               return (
                 <div 
                   key={conv._id} 
-                  onClick={() => navigate(`/messages/${conv._id}`)}
+                  onClick={() => navigate(`${getMessagesBasePath()}/${conv._id}`)}
                   className={`p-4 border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition-colors relative ${
                     conversationId === conv._id ? 'bg-sky-50/50 border-l-4 border-l-sky-500' : 'border-l-4 border-l-transparent'
                   }`}
@@ -325,22 +336,26 @@ export function Messages() {
           {/* Header */}
           <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0 relative">
             <div className="flex items-center gap-3">
+              {(() => { const other = getOtherUser(activeConv.participants); return (
+              <>
               <div className="relative">
-                <Avatar src={activeConv.participants.find(p => p._id !== user.id)?.profile?.avatar} fallback={activeConv.participants.find(p => p._id !== user.id)?.name?.charAt(0)} className="bg-sky-100 text-sky-600" />
-                {onlineUsersMap && onlineUsersMap[activeConv.participants.find(p => p._id !== user.id)?._id] && (
+                <Avatar src={other?.profile?.avatar} fallback={other?.name?.charAt(0)} className="bg-sky-100 text-sky-600" />
+                {onlineUsersMap && onlineUsersMap[other?._id] && (
                   <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></span>
                 )}
               </div>
               <div>
-                <h3 className="font-bold text-slate-900">{activeConv.participants.find(p => p._id !== user.id)?.name}</h3>
+                <h3 className="font-bold text-slate-900">{other?.name}</h3>
                 <p className="text-xs text-slate-500 truncate max-w-md">
-                  {onlineUsersMap && onlineUsersMap[activeConv.participants.find(p => p._id !== user.id)?._id] ? (
+                  {onlineUsersMap && onlineUsersMap[other?._id] ? (
                     <span className="text-green-600 font-medium">Online</span>
                   ) : (
                     "Offline"
                   )} • Regarding: {activeConv.campaign?.title}
                 </p>
               </div>
+              </>
+              ); })()}
             </div>
             <div className="flex gap-2 items-center">
               <div className="relative hidden md:block">
@@ -388,7 +403,8 @@ export function Messages() {
             )}
 
             {filteredMessages.map((msg, index) => {
-              const isMine = typeof msg.sender === 'string' ? msg.sender === user.id : msg.sender._id === user.id;
+              const currentUserId = user?._id || user?.id;
+              const isMine = typeof msg.sender === 'string' ? msg.sender === currentUserId : msg.sender._id?.toString() === currentUserId;
               const showTime = index === 0 || new Date(msg.createdAt) - new Date(filteredMessages[index-1].createdAt) > 5 * 60000;
               
               return (
@@ -462,8 +478,8 @@ export function Messages() {
           isOpen={showReportModal} 
           onClose={() => setShowReportModal(false)}
           conversationId={activeConv?._id}
-          reportedUserId={activeConv?.participants.find(p => p._id !== user.id)?._id}
-          reportedUserName={activeConv?.participants.find(p => p._id !== user.id)?.name}
+          reportedUserId={getOtherUser(activeConv?.participants)?._id}
+          reportedUserName={getOtherUser(activeConv?.participants)?.name}
         />
       )}
     </>

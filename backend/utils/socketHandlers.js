@@ -84,7 +84,8 @@ const initializeSocket = (io) => {
         io.to(`conv_${conversationId}`).emit('receive_message', populatedMessage);
 
         // Emit notifications to recipient if they are not in the room or offline
-        const recipientId = conversation.participants.find(p => p.toString() !== userId).toString();
+        const recipient = conversation.participants.find(p => p.toString() !== userId);
+        const recipientId = recipient ? recipient.toString() : userId; // Fallback to self if same user
         const recipientSocketId = onlineUsers.get(recipientId);
 
         if (recipientSocketId) {

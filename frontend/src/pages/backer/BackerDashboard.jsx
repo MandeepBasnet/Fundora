@@ -91,7 +91,7 @@ export function BackerDashboard() {
               <Button variant="outline" className="w-full justify-start">
                 <Clock className="w-4 h-4 mr-2" /> Transaction History
               </Button>
-              <Link to="/backer/messages">
+              <Link to="/dashboard/messages">
                 <Button variant="outline" className="w-full justify-start">
                   <MessageSquare className="w-4 h-4 mr-2" /> Message Creators
                 </Button>

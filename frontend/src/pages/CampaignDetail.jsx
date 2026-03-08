@@ -388,9 +388,10 @@ export function CampaignDetail() {
                          <Button variant="outline" className="flex-1 text-sm bg-white hover:bg-slate-50 border-sky-200 text-sky-700" onClick={async () => {
                             try {
                               const creatorId = campaign.creator?._id || campaign.creator;
-                              const res = await api.post('/messages/initiate', { campaignId: campaign.id, creatorId });
+                              const res = await api.post('/messages/initiate', { campaignId: campaign.id });
                               if (res.data.success) {
-                                navigate(`/messages/${res.data.data._id}`);
+                                const basePath = user?.role === 'creator' ? '/creator/messages' : '/dashboard/messages';
+                                navigate(`${basePath}/${res.data.data._id}`);
                               }
                             } catch (e) { console.error('Error initiating chat', e); }
                          }}>

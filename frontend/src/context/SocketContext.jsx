@@ -15,14 +15,12 @@ export const SocketProvider = ({ children }) => {
   const [onlineUsersMap, setOnlineUsersMap] = useState({});
 
   useEffect(() => {
-    // Only connect if user is authenticated and we have a token
+    let newSocket = null;
     const token = localStorage.getItem('token');
     
-    if (user && token && !socket) {
-      const newSocket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000', {
-        auth: {
-          token
-        }
+    if (user && token) {
+      newSocket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000', {
+        auth: { token }
       });
 
       newSocket.on('connect', () => {
@@ -30,9 +28,7 @@ export const SocketProvider = ({ children }) => {
       });
 
       newSocket.on('new_message_notification', (data) => {
-        // Increment unread count, trigger browser notification if allowed
         setUnreadCount(prev => prev + 1);
-
         if (Notification.permission === 'granted') {
           new Notification('New Message on Fundora', {
             body: `${data.message.sender.name}: ${data.message.content.substring(0, 50)}...`,
@@ -50,15 +46,20 @@ export const SocketProvider = ({ children }) => {
 
       setSocket(newSocket);
 
-      // Request notification permission on connect if not denied
       if (Notification.permission === 'default') {
         Notification.requestPermission();
       }
-
-      return () => {
-        newSocket.disconnect();
-      };
+    } else {
+      // If user logs out, clear the socket state
+      setSocket(null);
     }
+
+    // Cleanup always runs when dependencies change or on unmount
+    return () => {
+      if (newSocket) {
+        newSocket.disconnect();
+      }
+    };
   }, [user]);
 
   return (

@@ -8,7 +8,7 @@ const Campaign = require('../models/Campaign');
 // @access  Private
 exports.initiateConversation = async (req, res) => {
   try {
-    const { campaignId, creatorId } = req.body;
+    const { campaignId } = req.body;
     const userId = req.user.id;
 
     // Verify campaign exists
@@ -16,6 +16,12 @@ exports.initiateConversation = async (req, res) => {
     if (!campaign) {
       return res.status(404).json({ success: false, message: 'Campaign not found' });
     }
+
+    if (!campaign.creator) {
+      return res.status(400).json({ success: false, message: 'Creator no longer exists.' });
+    }
+
+    const creatorId = campaign.creator.toString();
 
     // Verify user is a backer of this campaign
     const transaction = await Transaction.findOne({
@@ -54,7 +60,7 @@ exports.initiateConversation = async (req, res) => {
     });
   } catch (error) {
     console.error('Error initiating conversation:', error);
-    res.status(500).json({ success: false, message: 'Server Error' });
+    res.status(500).json({ success: false, message: 'Server Error', backendError: error.message, stack: error.stack });
   }
 };
 
