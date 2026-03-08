@@ -34,6 +34,7 @@
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.3.0",
     "cross-env": "^10.1.0",
     "jest": "^30.2.0",
     "mongodb-memory-server": "^11.0.1",
