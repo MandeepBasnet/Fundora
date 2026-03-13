@@ -15,6 +15,7 @@ const notificationRoutes = require('./routes/notification');
 const flagRoutes = require('./routes/flagRoutes');
 const financeRoutes = require('./routes/finance');
 const messageRoutes = require('./routes/messages');
+const dashboardRoutes = require('./routes/dashboard');
 const { Server } = require('socket.io');
 const { initializeSocket } = require('./utils/socketHandlers');
 const { startCronJobs } = require('./utils/cronJobs');
@@ -41,6 +42,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/flags', flagRoutes);
 app.use('/api/finances', financeRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Base route
 app.get('/', (req, res) => {

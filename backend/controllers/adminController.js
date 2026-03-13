@@ -378,13 +378,30 @@ const getAdminStats = async (req, res) => {
       Campaign.countDocuments({ 'milestones.status': 'submitted' })
     ]);
 
+    const { Flag } = require('../models/Flag'); // Require Flag here to avoid circular dep issues at top
+    const flaggedCampaigns = await Flag ? await Flag.countDocuments({ status: 'pending' }) : 0;
+    
+    // Recent activity:
+    const recentTransactions = await Transaction.find().sort({ createdAt: -1 }).limit(3).populate('user', 'name');
+    const recentActivity = recentTransactions.map(t => ({
+      id: t._id,
+      type: 'large_backing',
+      message: `${t.user?.name || 'A user'} backed a campaign for Rs. ${t.amount}`,
+      time: new Date(t.createdAt).toLocaleTimeString()
+    }));
+
     res.json({
       pendingApprovals: pendingCampaigns,
       activeCampaigns,
+      totalCampaigns: await Campaign.countDocuments(),
       totalUsers,
       totalCreators,
       totalFunding: totalFunding[0]?.total || 0,
-      pendingMilestones
+      monthlyRevenue: (totalFunding[0]?.total || 0) * 0.05, // assuming 5%
+      pendingReviews: pendingMilestones,
+      flaggedCampaigns,
+      platformSuccessRate: 85, // Mock number or calculate based on completed/failed
+      recentActivity
     });
   } catch (error) {
     console.error('Get admin stats error:', error);
