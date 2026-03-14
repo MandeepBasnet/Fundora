@@ -24,10 +24,14 @@ const getBackerDashboard = async (req, res) => {
     let totalBacked = 0;
     const uniqueCampaignIds = new Set();
     const activeCampaignsMap = new Map();
+    const categoryCounts = {};
 
     userTransactions.forEach(t => {
       totalBacked += t.amount;
       if (t.campaign && t.campaign._id) {
+        if (t.campaign.category) {
+          categoryCounts[t.campaign.category] = (categoryCounts[t.campaign.category] || 0) + 1;
+        }
         uniqueCampaignIds.add(t.campaign._id.toString());
         
         // Group by campaign to show "Active Campaigns" the user backed
@@ -58,13 +62,40 @@ const getBackerDashboard = async (req, res) => {
     }));
 
     // 3. Recommended Campaigns (Active campaigns not backed by user)
-    const recommended = await Campaign.find({
+    const recommendedQuery = {
       status: 'active',
       _id: { $nin: Array.from(uniqueCampaignIds) }
-    })
-    .sort({ trendingScore: -1, backerCount: -1 })
-    .limit(4)
-    .select('title category coverImage images');
+    };
+
+    const backedCategories = Object.keys(categoryCounts);
+    let recommended = [];
+
+    if (backedCategories.length > 0) {
+      recommended = await Campaign.find({
+        ...recommendedQuery,
+        category: { $in: backedCategories }
+      })
+      .sort({ trendingScore: -1, backerCount: -1, createdAt: -1 })
+      .limit(4)
+      .select('title category coverImage images');
+    }
+
+    if (recommended.length < 4) {
+      const excludedIds = [
+        ...Array.from(uniqueCampaignIds),
+        ...recommended.map(c => c._id.toString())
+      ];
+      
+      const extraRecommended = await Campaign.find({
+        status: 'active',
+        _id: { $nin: excludedIds }
+      })
+      .sort({ trendingScore: -1, backerCount: -1, createdAt: -1 })
+      .limit(4 - recommended.length)
+      .select('title category coverImage images');
+
+      recommended = [...recommended, ...extraRecommended];
+    }
 
     const formattedRecommended = recommended.map(c => ({
       id: c._id,

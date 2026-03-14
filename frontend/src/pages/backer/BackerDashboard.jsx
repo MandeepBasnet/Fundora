@@ -89,7 +89,7 @@ export function BackerDashboard() {
               <p className="text-slate-500 py-4">You haven't backed any campaigns yet.</p>
             ) : (
               <div className="space-y-6">
-                {data.activeCampaigns.map((campaign) => (
+                {data.activeCampaigns.slice(0, 5).map((campaign) => (
                   <div key={campaign.id} className="flex gap-4 items-start pb-6 border-b border-slate-100 last:border-0 last:pb-0">
                     <img src={campaign.image || 'https://via.placeholder.com/150'} alt={campaign.title} className="w-24 h-16 object-cover rounded-lg bg-slate-100" />
                     <div className="flex-1">
@@ -115,25 +115,7 @@ export function BackerDashboard() {
             </Link>
           </Card>
 
-          {/* Recommended */}
-          <Card className="p-6 border-slate-200">
-            <h3 className="font-bold text-lg text-slate-900 mb-6">Recommended for You</h3>
-            {data.recommended.length === 0 ? (
-              <p className="text-slate-500 py-4">No recommendations available at this time.</p>
-            ) : (
-              <div className="grid sm:grid-cols-2 gap-4">
-                {data.recommended.map((campaign) => (
-                  <Link key={campaign.id} to={`/campaigns/${campaign.id}`} className="group cursor-pointer block">
-                    <div className="h-32 overflow-hidden rounded-lg mb-3 relative">
-                      <img src={campaign.image || 'https://via.placeholder.com/150'} alt={campaign.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                    </div>
-                    <h4 className="font-bold text-slate-900 group-hover:text-sky-600 transition-colors">{campaign.title}</h4>
-                    <p className="text-xs text-slate-500">{campaign.category}</p>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </Card>
+
         </div>
 
         {/* Sidebar */}
