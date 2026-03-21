@@ -66,7 +66,11 @@ const userSchema = new mongoose.Schema({
   isBanned: {
     type: Boolean,
     default: false
-  }
+  },
+  savedCampaigns: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Campaign'
+  }]
 }, {
   timestamps: true
 });

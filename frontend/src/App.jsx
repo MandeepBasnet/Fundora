@@ -41,6 +41,7 @@ import { MilestoneReview } from './pages/admin/MilestoneReview'
 import { Messages } from './pages/shared/Messages'
 import { Transactions } from './pages/shared/Transactions'
 import { Profile } from './pages/shared/Profile'
+import SavedCampaigns from './pages/shared/SavedCampaigns'
 import { Forbidden403 } from './pages/shared/Forbidden403'
 
 // Layouts
@@ -97,6 +98,7 @@ function App() {
               <Route path="/dashboard" element={<DashboardLayout />}>
                 <Route index element={<BackerDashboard />} />
                 <Route path="supported" element={<SupportedProjects />} />
+                <Route path="saved" element={<SavedCampaigns />} />
                 <Route path="messages" element={<Messages />} />
                 <Route path="messages/:conversationId" element={<Messages />} />
                 <Route path="transactions" element={<Transactions />} />
@@ -109,6 +111,7 @@ function App() {
               <Route path="/creator" element={<CreatorLayout />}>
                 <Route index element={<Overview />} />
                 <Route path="campaigns" element={<MyCampaigns />} />
+                <Route path="saved" element={<SavedCampaigns />} />
                 <Route path="milestones" element={<MilestoneSubmission />} />
                 <Route path="finances" element={<Finances />} />
                 <Route path="messages" element={<Messages />} />

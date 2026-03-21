@@ -12,6 +12,7 @@ import UpdateFeed from '../components/campaigns/UpdateFeed';
 import { ReportCampaignModal } from '../components/campaigns/ReportCampaignModal';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { toast } from 'react-hot-toast';
 
 export function CampaignDetail() {
   const { id } = useParams();
@@ -28,6 +29,9 @@ export function CampaignDetail() {
   const [paymentMethod, setPaymentMethod] = useState('esewa');
   const [pledgeAmount, setPledgeAmount] = useState(100);
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
+
+  const [isSaved, setIsSaved] = useState(false);
+  const [savingLoading, setSavingLoading] = useState(false);
 
   useEffect(() => {
     const fetchCampaignData = async () => {
@@ -64,6 +68,18 @@ export function CampaignDetail() {
         };
         
         setCampaign(mappedCampaign);
+
+        // Check if saved
+        if (user) {
+          try {
+            const savedRes = await api.get('/users/saved-campaigns');
+            const savedIds = savedRes.data.map(ca => ca._id || ca.id);
+            if (savedIds.includes(c._id)) {
+               setIsSaved(true);
+            }
+          } catch(err) { console.error('Error fetching saved status:', err) }
+        }
+
       } catch (err) {
         console.error('Error fetching campaign details:', err);
         setError('Failed to load campaign details. Please try again.');
@@ -75,7 +91,45 @@ export function CampaignDetail() {
     if (id) {
       fetchCampaignData();
     }
-  }, [id]);
+  }, [id, user]);
+
+  const handleToggleSave = async () => {
+    if (!user) {
+      toast.error('Please login to save campaigns');
+      return;
+    }
+    try {
+      setSavingLoading(true);
+      const res = await api.post(`/users/save-campaign/${campaign.id}`);
+      setIsSaved(res.data.isSaved);
+      toast.success(res.data.message);
+    } catch(err) {
+      toast.error('Failed to update saved status');
+    } finally {
+      setSavingLoading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: campaign.title,
+          text: campaign.shortDescription || campaign.title,
+          url: url,
+        });
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+           navigator.clipboard.writeText(url);
+           toast.success('Link copied to clipboard!');
+        }
+      }
+    } else {
+      navigator.clipboard.writeText(url);
+      toast.success('Link copied to clipboard!');
+    }
+  };
 
   const handleBackProject = () => {
     setShowPaymentModal(true);
@@ -282,10 +336,19 @@ export function CampaignDetail() {
                   {campaign.isBacked ? "Back this project again" : "Back this project"}
                 </Button>
                 <div className="flex gap-3">
-                  <Button variant="outline" className="flex-1 rounded-sm border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-700 font-medium">
-                    <Heart className="w-4 h-4 mr-2" /> Remind me
+                  <Button 
+                    variant="outline" 
+                    className={`flex-1 rounded-sm border-slate-300 hover:border-slate-400 hover:bg-slate-50 font-medium ${isSaved ? 'text-red-600 bg-red-50 border-red-200 hover:border-red-300 hover:bg-red-100' : 'text-slate-700'}`}
+                    onClick={handleToggleSave}
+                    disabled={savingLoading}
+                  >
+                    <Heart className={`w-4 h-4 mr-2 ${isSaved ? 'fill-current' : ''}`} /> {isSaved ? 'Saved' : 'Remind me'}
                   </Button>
-                  <Button variant="outline" className="flex-1 rounded-sm border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-700 font-medium">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 rounded-sm border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-700 font-medium"
+                    onClick={handleShare}
+                  >
                     <Share2 className="w-4 h-4 mr-2" /> Share
                   </Button>
                 </div>
@@ -402,7 +465,11 @@ export function CampaignDetail() {
                            <MessageCircle className="w-4 h-4 mr-2" /> Message (Backers Only)
                          </Button>
                        )}
-                      <Button variant="link" className="flex-1 text-sky-600 font-bold hover:text-blue-700 hover:no-underline text-sm">
+                      <Button 
+                        variant="link" 
+                        className="flex-1 text-sky-600 font-bold hover:text-blue-700 hover:no-underline text-sm"
+                        onClick={() => navigate('/campaigns')}
+                      >
                         See more projects
                       </Button>
                     </div>

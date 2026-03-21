@@ -35,6 +35,7 @@ export function DashboardLayout() {
         <nav className="p-4 space-y-1 flex-1">
           <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
           <NavItem to="/dashboard/supported" icon={Heart} label="Supported Projects" />
+          <NavItem to="/dashboard/saved" icon={Heart} label="Saved Campaigns" />
           <NavItem to="/campaigns" icon={Compass} label="Browse Campaigns" />
           <NavItem to="/dashboard/transactions" icon={History} label="Transactions" />
           <NavItem to="/dashboard/messages" icon={MessageSquare} label="Messages" />

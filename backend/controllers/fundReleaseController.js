@@ -320,83 +320,47 @@ const getAllFundReleases = async (req, res) => {
 
 const Transaction = require('../models/Transaction');
 
-// @desc    Get campaigns eligible for payouts (based on pending transactions)
+// @desc    Get campaigns eligible for payouts 
 // @route   GET /api/admin/fund-releases/eligible
 // @access  Private (Admin only)
 const getEligiblePayouts = async (req, res) => {
   try {
-    // 1. Aggregate pending backer transactions
-    const aggregatedPayouts = await Transaction.aggregate([
-      {
-        $match: {
-          status: 'completed',
-          payoutStatus: 'pending'
-        }
-      },
-      {
-        $group: {
-          _id: '$campaign',
-          grossAvailable: { $sum: '$amount' },
-          transactionIds: { $push: '$_id' }
-        }
+    const populatedPayouts = await Campaign.find({
+      $expr: {
+        $gt: ["$currentAmount", { $ifNull: ["$released_amount", 0] }]
       }
-    ]);
+    }).populate('creator', 'name email').populate('milestones');
 
-    // 2. Populate campaign and creator details
-    const populatedPayouts = await Campaign.populate(aggregatedPayouts, {
-      path: '_id',
-      populate: [
-        { path: 'creator', select: 'name email' },
-        { path: 'milestones' }
-      ]
-    });
-
-    const payouts = populatedPayouts.map(agg => {
-      const camp = agg._id; // The populated campaign object
-      if (!camp) return null; // Defensive check
-
+    const payouts = populatedPayouts.map(camp => {
       const isDonation = camp.fundingType === 'donation-based';
       const isMilestone = camp.fundingType === 'milestone-based';
       
-      let platformFee = 0;
-      let netAmount = 0;
-      let grossAvailable = 0;
+      const grossAvailable = Math.max(0, camp.currentAmount - (camp.released_amount || 0));
+      if (grossAvailable <= 0) return null;
 
-      if (isMilestone) {
-        // For milestone campaigns, pending transactions don't accurately reflect payout availability
-        // since approveMilestone doesn't strictly link them.
-        // We calculate max releasable based on total funded vs released.
-        grossAvailable = Math.max(0, camp.currentAmount - (camp.released_amount || 0));
-        platformFee = Math.round(grossAvailable * 0.05); // Calculate total remaining theoretical fee
-        netAmount = grossAvailable > 0 ? grossAvailable - platformFee : 0;
-      } else {
-        // For reward/donation, rely on aggregated un-paid transactions
-        grossAvailable = agg.grossAvailable;
-        platformFee = isDonation ? 0 : Math.round(grossAvailable * 0.05);
-        netAmount = grossAvailable > 0 ? grossAvailable - platformFee : 0;
-      }
+      const platformFee = isDonation ? 0 : Math.round(grossAvailable * 0.05);
+      const netAmount = grossAvailable - platformFee;
       
       let pendingMilestonesCount = 0;
       if (isMilestone && camp.milestones) {
           pendingMilestonesCount = camp.milestones.filter(m => m.status !== 'approved' && m.status !== 'completed').length;
       }
 
-      // Only return if there is actually a net amount to pay out
       if (netAmount <= 0) return null;
 
       return {
         campaignId: camp._id,
         title: camp.title,
         fundingType: camp.fundingType,
-        totalFunded: camp.currentAmount, // Used for displaying Total Funded
+        totalFunded: camp.currentAmount, 
         alreadyReleased: camp.released_amount || 0,
-        grossAvailable: isMilestone ? camp.currentAmount - (camp.released_amount || 0) : agg.grossAvailable,
+        grossAvailable,
         platformFee,
         netAmount,
         creator: camp.creator,
         pendingMilestonesCount
       };
-    }).filter(Boolean); // Remove nulls if any campaign was deleted or netAmount <= 0
+    }).filter(Boolean); 
 
     res.json(payouts);
 
@@ -425,23 +389,8 @@ const releaseCampaignFunds = async (req, res) => {
       return res.status(400).json({ message: 'Milestone campaigns must be released via milestone review, or explicitly overridden.' });
     }
 
-    // 1. Fetch pending transactions as baseline available funds
-    const pendingTransactions = await Transaction.find({
-      campaign: campaignId,
-      status: 'completed',
-      payoutStatus: 'pending'
-    });
-
-    // 2. Determine max available
-    let maxAvailable = 0;
-    
-    if (campaign.fundingType === 'milestone-based') {
-       // Milestone campaigns calculate availability based on overall progress
-       maxAvailable = Math.max(0, campaign.currentAmount - (campaign.released_amount || 0));
-    } else {
-       // Rewards/Donations base it strictly on untransferred transactions
-       maxAvailable = pendingTransactions.reduce((acc, tx) => acc + tx.amount, 0);
-    }
+    // 1. Determine max available based purely on campaign amounts
+    const maxAvailable = Math.max(0, campaign.currentAmount - (campaign.released_amount || 0));
     
     if (maxAvailable <= 0) {
       return res.status(400).json({ message: 'No available funds to release' });
@@ -451,36 +400,30 @@ const releaseCampaignFunds = async (req, res) => {
     let grossAvailable = maxAvailable;
 
     if (requestedAmount && requestedAmount > 0) {
-       // The requestedAmount typically represents the targeted Net Amount the admin typed in,
-       // OR the admin wants to release a specific Gross Amount. 
-       // Often, admin inputs "I want to release exactly X net".
-       // Let's assume req.body.amount is the requested NET amount.
        const isDonation = campaign.fundingType === 'donation-based';
        const targetNet = requestedAmount;
        
-       // gross = net / 0.95
+       // gross = net / 0.95 (approximate backwards calculation)
        const targetGross = isDonation ? targetNet : Math.round(targetNet / 0.95);
        
-       if (targetGross > maxAvailable) {
+       if (targetGross > maxAvailable + 10) { // Add small tolerance for rounding issues
          return res.status(400).json({ 
            message: `Requested amount exceeds available limit. Max Net Releasable is NPR ${isDonation ? maxAvailable : Math.floor(maxAvailable * 0.95)}`
          });
        }
-       grossAvailable = targetGross;
+       // If it's roughly the max, just use exact max to avoid leftover decimals
+       if (Math.abs(targetGross - maxAvailable) < 10) {
+           grossAvailable = maxAvailable;
+       } else {
+           grossAvailable = targetGross;
+       }
     }
 
     const isDonation = campaign.fundingType === 'donation-based';
     const platformFee = isDonation ? 0 : Math.round(grossAvailable * 0.05);
     const netAmount = grossAvailable - platformFee;
 
-    // We only attach specific transaction IDs for non-milestone campaigns
-    // For milestone campaigns, tracking individual transactions adds huge complexity during partial payouts
-    let transactionIds = [];
-    if (campaign.fundingType !== 'milestone-based') {
-        transactionIds = pendingTransactions.map(tx => tx._id);
-    }
-
-    // 3. Create Fund Release Record
+    // 2. Create Fund Release Record
     const fundRelease = await FundRelease.create({
       campaign: campaign._id,
       grossAmount: grossAvailable,
@@ -488,17 +431,16 @@ const releaseCampaignFunds = async (req, res) => {
       amount: netAmount,
       approvedBy: req.user._id,
       disbursementMethod: campaign.disbursementMethod || 'esewa',
-      disbursementStatus: 'pending',
-      transactions: transactionIds
+      disbursementStatus: 'pending'
     });
 
-    // 4. Mark Transactions as Processing
-    if (transactionIds.length > 0) {
-      await Transaction.updateMany(
-        { _id: { $in: transactionIds } },
+    // 3. Mark all outstanding pending transactions as processing 
+    // This is optional if we rely strictly on released_amount, but good for data cleanliness
+    // We update up to the total size of the payout (simplified: just update all pending since we're using released_amount now)
+    await Transaction.updateMany(
+        { campaign: campaignId, status: 'completed', payoutStatus: 'pending' },
         { $set: { payoutStatus: 'processing' } }
-      );
-    }
+    );
 
     // Update Campaign (sync legacy field just in case)
     campaign.released_amount = (campaign.released_amount || 0) + grossAvailable;

@@ -45,7 +45,7 @@ export default function FundDisbursements() {
   );
 
   // Dialog State
-  const [selectedMilestoneCampaign, setSelectedMilestoneCampaign] = useState(null);
+  const [selectedCampaignForPayout, setSelectedCampaignForPayout] = useState(null);
   const [customReleaseAmount, setCustomReleaseAmount] = useState('');
   const navigate = useNavigate();
 
@@ -89,7 +89,7 @@ export default function FundDisbursements() {
       await releaseCampaignFunds(campaignId, overrideMilestone, amount);
       toast.success('Funds released successfully!');
       fetchEligiblePayouts();
-      setSelectedMilestoneCampaign(null);
+      setSelectedCampaignForPayout(null);
       setCustomReleaseAmount('');
     } catch (error) {
       console.error('Failed to release funds:', error);
@@ -114,15 +114,11 @@ export default function FundDisbursements() {
     }
   };
 
-  const handleInitiatePayment = async (release) => {
+  const handleInitiatePayment = async (release, method) => {
     try {
       setUpdatingId(release._id);
       
-      const payload = {
-        paymentMethod: release.disbursementMethod || 'esewa', // Default to esewa if not set
-      };
-
-      const data = await initiateDisbursementPayment(release._id, payload.paymentMethod);
+      const data = await initiateDisbursementPayment(release._id, method);
       
       // Handle Gateway Redirects
       if (data.paymentMethod === 'esewa') {
@@ -270,12 +266,8 @@ export default function FundDisbursements() {
                         <td className="px-6 py-4 text-center">
                           <Button 
                             onClick={() => {
-                              if (camp.fundingType === 'milestone-based') {
-                                setSelectedMilestoneCampaign(camp);
-                                setCustomReleaseAmount(camp.netAmount.toString());
-                              } else {
-                                handleReleaseFunds(camp.campaignId);
-                              }
+                              setSelectedCampaignForPayout(camp);
+                              setCustomReleaseAmount(camp.netAmount.toString());
                             }}
                             disabled={releasingId === camp.campaignId}
                             className={`${camp.fundingType === 'milestone-based' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-sky-600 hover:bg-sky-700'} text-white w-full`}
@@ -416,14 +408,24 @@ export default function FundDisbursements() {
                                   >
                                     <RotateCcw className="w-4 h-4" />
                                   </Button>
-                                  <Button 
-                                    size="sm" 
-                                    className={`${release.disbursementMethod === 'khalti' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700'} text-white text-xs px-4 h-8 capitalize`}
-                                    disabled={updatingId === release._id}
-                                    onClick={() => handleInitiatePayment(release)}
-                                  >
-                                    {updatingId === release._id ? <Loader2 className="w-3 h-3 animate-spin" /> : `Pay via ${release.disbursementMethod || 'eSewa'}`}
-                                  </Button>
+                                  <div className="flex gap-2">
+                                    <Button 
+                                      size="sm" 
+                                      className="bg-green-600 hover:bg-green-700 text-white text-xs px-4 h-8"
+                                      disabled={updatingId === release._id}
+                                      onClick={() => handleInitiatePayment(release, 'esewa')}
+                                    >
+                                      {updatingId === release._id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'eSewa'}
+                                    </Button>
+                                    <Button 
+                                      size="sm" 
+                                      className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-4 h-8"
+                                      disabled={updatingId === release._id}
+                                      onClick={() => handleInitiatePayment(release, 'khalti')}
+                                    >
+                                      {updatingId === release._id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Khalti'}
+                                    </Button>
+                                  </div>
                                 </>
                               )}
                             </div>
@@ -466,24 +468,30 @@ export default function FundDisbursements() {
         </TabsContent>
       </Tabs>
 
-      {/* Warning Dialog for Milestone Override */}
-      {selectedMilestoneCampaign && (
+      {/* Payout Modal */}
+      {selectedCampaignForPayout && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <Card className="max-w-md w-full p-6 shadow-xl border-none">
             
-            {selectedMilestoneCampaign.alreadyReleased > 0 ? (
+            {selectedCampaignForPayout.alreadyReleased > 0 ? (
               <div className="flex gap-4">
                 <div className="w-12 h-12 bg-amber-100 rounded-full flex shrink-0 items-center justify-center">
                   <AlertCircle className="w-6 h-6 text-amber-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">Check Milestone Proofs</h3>
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">
+                    {selectedCampaignForPayout.fundingType === 'milestone-based' ? 'Check Milestone Proofs' : 'Subsequent Disbursement'}
+                  </h3>
                   <p className="text-slate-600 text-sm mb-2">
-                    This campaign has already received funds. Please check its past milestone proofs up to where the released amount (<strong className="text-slate-900">NPR {selectedMilestoneCampaign.alreadyReleased.toLocaleString()}</strong>) matched, before releasing more funds.
+                    This campaign has already received funds. 
+                    {selectedCampaignForPayout.fundingType === 'milestone-based' 
+                      ? ` Please check its past milestone proofs up to where the released amount (NPR ${selectedCampaignForPayout.alreadyReleased.toLocaleString()}) matched, before releasing more funds.`
+                      : ` Make sure you are disbursing the correct requested amount. Total already released: NPR ${selectedCampaignForPayout.alreadyReleased.toLocaleString()}.`
+                    }
                   </p>
-                  {selectedMilestoneCampaign.pendingMilestonesCount > 0 && (
+                  {selectedCampaignForPayout.fundingType === 'milestone-based' && selectedCampaignForPayout.pendingMilestonesCount > 0 && (
                      <p className="text-amber-700 text-sm bg-amber-50 rounded p-2 mb-4 border border-amber-200">
-                       It has <strong>{selectedMilestoneCampaign.pendingMilestonesCount} pending milestones</strong>.
+                       It has <strong>{selectedCampaignForPayout.pendingMilestonesCount} pending milestones</strong>.
                      </p>
                   )}
                 </div>
@@ -505,15 +513,15 @@ export default function FundDisbursements() {
             <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-4 text-sm mt-4">
                <div className="flex justify-between mb-1">
                  <span className="text-slate-500">Total Funded:</span>
-                 <span className="font-medium">NPR {selectedMilestoneCampaign.totalFunded?.toLocaleString()}</span>
+                 <span className="font-medium">NPR {selectedCampaignForPayout.totalFunded?.toLocaleString()}</span>
                </div>
                <div className="flex justify-between mb-1">
                  <span className="text-slate-500">Already Released:</span>
-                 <span className="font-medium text-amber-600">NPR {selectedMilestoneCampaign.alreadyReleased?.toLocaleString()}</span>
+                 <span className="font-medium text-amber-600">NPR {selectedCampaignForPayout.alreadyReleased?.toLocaleString()}</span>
                </div>
                <div className="flex justify-between mb-3 border-b border-slate-200 pb-2">
                  <span className="text-slate-500">Max Net Available:</span>
-                 <span className="font-bold text-green-600">NPR {selectedMilestoneCampaign.netAmount?.toLocaleString()}</span>
+                 <span className="font-bold text-green-600">NPR {selectedCampaignForPayout.netAmount?.toLocaleString()}</span>
                </div>
 
                <div>
@@ -523,30 +531,32 @@ export default function FundDisbursements() {
                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"
                    value={customReleaseAmount}
                    onChange={(e) => setCustomReleaseAmount(e.target.value)}
-                   max={selectedMilestoneCampaign.netAmount}
+                   max={selectedCampaignForPayout.netAmount}
                    min={0}
                  />
-                 <p className="text-xs text-slate-400 mt-1">Specify how much to release if partially paying for a milestone tier.</p>
+                 <p className="text-xs text-slate-400 mt-1">Specify how much to release if performing a partial payout.</p>
                </div>
             </div>
             
             <div className="flex flex-col gap-2 mt-4">
+              {selectedCampaignForPayout.fundingType === 'milestone-based' && (
+                <Button 
+                  onClick={() => navigate('/admin/milestone-review')}
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-white"
+                >
+                   Go to Milestone Review
+                </Button>
+              )}
               <Button 
-                onClick={() => navigate('/admin/milestone-review')}
-                className="w-full bg-slate-900 hover:bg-slate-800 text-white"
+                onClick={() => handleReleaseFunds(selectedCampaignForPayout.campaignId, true, customReleaseAmount)}
+                className={`w-full text-white ${selectedCampaignForPayout.fundingType === 'milestone-based' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-sky-600 hover:bg-sky-700'}`}
+                disabled={releasingId === selectedCampaignForPayout.campaignId}
               >
-                 Go to Milestone Review
-              </Button>
-              <Button 
-                onClick={() => handleReleaseFunds(selectedMilestoneCampaign.campaignId, true, customReleaseAmount)}
-                className="w-full bg-amber-500 hover:bg-amber-600 text-white"
-                disabled={releasingId === selectedMilestoneCampaign.campaignId}
-              >
-                {releasingId === selectedMilestoneCampaign.campaignId ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Release Specified Funds'}
+                {releasingId === selectedCampaignForPayout.campaignId ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Release Specified Funds'}
               </Button>
               <Button 
                 variant="ghost" 
-                onClick={() => { setSelectedMilestoneCampaign(null); setCustomReleaseAmount(''); }}
+                onClick={() => { setSelectedCampaignForPayout(null); setCustomReleaseAmount(''); }}
                 className="w-full text-slate-500 hover:text-slate-700 hover:bg-slate-100"
               >
                 Cancel
