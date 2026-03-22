@@ -60,7 +60,7 @@ export function NewPasswordPage() {
     setLoading(true);
 
     try {
-      await axios.post('http://localhost:5000/api/password/reset', {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/password/reset`, {
         email,
         resetToken,
         newPassword: password

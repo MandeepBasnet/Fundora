@@ -32,7 +32,7 @@ export default function FinancialReports() {
 
   const fetchFinancialData = async () => {
     try {
-        const response = await fetch('http://localhost:5000/api/admin/financial-reports', {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/financial-reports`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }

@@ -16,7 +16,7 @@ export function Overview() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/dashboard/creator', {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/dashboard/creator`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setData(res.data);

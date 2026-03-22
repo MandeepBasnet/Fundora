@@ -23,7 +23,7 @@ export function ForgotPassword() {
     setLoading(true);
 
     try {
-      await axios.post('http://localhost:5000/api/password/forgot', { email });
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/password/forgot`, { email });
       
       // Redirect to OTP page
       navigate('/reset-password-otp', { state: { email } });

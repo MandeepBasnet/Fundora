@@ -94,7 +94,7 @@ export function OTPVerificationPage() {
     setError('');
 
     try {
-      const res = await axios.post('http://localhost:5000/api/otp/verify', {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/otp/verify`, {
         email,
         otp: otpCode
       });
@@ -129,7 +129,7 @@ export function OTPVerificationPage() {
     setError('');
 
     try {
-      const res = await axios.post('http://localhost:5000/api/otp/resend', { email });
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/otp/resend`, { email });
       setCountdown(60); // 60 second cooldown
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();

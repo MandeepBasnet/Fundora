@@ -83,7 +83,7 @@ export function ResetPasswordOTPPage() {
     setError('');
 
     try {
-      const res = await axios.post('http://localhost:5000/api/password/verify-otp', {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/password/verify-otp`, {
         email,
         otp: otpCode
       });
@@ -111,7 +111,7 @@ export function ResetPasswordOTPPage() {
     setError('');
 
     try {
-      await axios.post('http://localhost:5000/api/password/forgot', { email });
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/password/forgot`, { email });
       setCountdown(60);
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();

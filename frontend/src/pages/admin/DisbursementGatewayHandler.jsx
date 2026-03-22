@@ -37,7 +37,7 @@ export default function DisbursementGatewayHandler({ gateway }) {
           if (!data || !releaseId) throw new Error("Missing verification details");
 
           response = await axios.post(
-            'http://localhost:5000/api/admin/fund-releases/verify-esewa', 
+            `${import.meta.env.VITE_API_URL}/api/admin/fund-releases/verify-esewa`,
             { data, releaseId },
             config
           );
@@ -49,7 +49,7 @@ export default function DisbursementGatewayHandler({ gateway }) {
           if (!pidx || !releaseId) throw new Error("Missing verification details");
 
           response = await axios.post(
-            'http://localhost:5000/api/admin/fund-releases/verify-khalti', 
+            `${import.meta.env.VITE_API_URL}/api/admin/fund-releases/verify-khalti`,
             { pidx, releaseId },
             config
           );

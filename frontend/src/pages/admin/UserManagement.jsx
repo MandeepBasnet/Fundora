@@ -35,7 +35,7 @@ export function UserManagement() {
         status: filters.status === 'All Status' ? '' : filters.status
       });
 
-      const response = await fetch(`http://localhost:5000/api/admin/users?${params}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/users?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

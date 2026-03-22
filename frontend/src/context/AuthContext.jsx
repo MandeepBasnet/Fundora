@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         try {
           // Assuming backend running on port 5000, may need proxy or env var
-          const res = await axios.get('http://localhost:5000/api/users/me');
+          const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/users/me`);
           setUser(res.data);
         } catch (error) {
           // Only log full error if it's NOT a 401 (Unauthorized)
@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('token');
       delete axios.defaults.headers.common['Authorization'];
       
-      const res = await axios.post('http://localhost:5000/api/auth/login', {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
         email,
         password
       });
@@ -69,7 +69,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/register', userData);
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/register`, userData);
       
       // Don't auto-login - user needs to verify OTP first
       // Return success with user email for OTP verification
@@ -97,7 +97,7 @@ export const AuthProvider = ({ children }) => {
   const updateProfile = async (userData) => {
       try {
           // Axios automatically sets Content-Type to multipart/form-data when sending FormData
-          const res = await axios.put('http://localhost:5000/api/users/me', userData);
+          const res = await axios.put(`${import.meta.env.VITE_API_URL}/api/users/me`, userData);
           // Replace user state with server response to ensure we have the latest data
           setUser(res.data);
           return { success: true };
@@ -111,7 +111,7 @@ export const AuthProvider = ({ children }) => {
 
   const changePassword = async (currentPassword, newPassword) => {
       try {
-          await axios.put('http://localhost:5000/api/users/change-password', {
+          await axios.put(`${import.meta.env.VITE_API_URL}/api/users/change-password`, {
               currentPassword,
               newPassword
           });
