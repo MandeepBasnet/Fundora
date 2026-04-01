@@ -5,16 +5,17 @@ const cloudinary = require('../config/cloudinary');
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: async (req, file) => {
+    let format;
+    if (file.mimetype.startsWith('image')) {
+      format = 'webp';
+    }
+
     return {
       folder: 'fundora-uploads',
       resource_type: 'auto',
       allowed_formats: ['jpg', 'png', 'jpeg', 'gif', 'mp4', 'mov', 'avi', 'mkv'],
-      format: async (req, file) => {
-        // converting images to webp for better compression
-        if (file.mimetype.startsWith('image')) return 'webp';
-        return undefined; 
-      },
-      transformation: [{ width: 1200, crop: "limit" }, { quality: "auto:good" }] // Resize huge images, optimize quality
+      format: format,
+      transformation: [{ width: 1200, crop: "limit" }, { quality: "auto:good" }]
     };
   },
 });

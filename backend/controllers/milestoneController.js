@@ -8,7 +8,17 @@ const Transaction = require('../models/Transaction');
 const submitMilestoneProof = async (req, res) => {
   try {
     const { id, milestoneId } = req.params;
-    const { proofFiles, progressDescription, nextMilestoneEstimate } = req.body;
+    const { progressDescription, nextMilestoneEstimate } = req.body;
+    
+    // Map uploaded files to milestone.proofFiles structure
+    let proofFiles = [];
+    if (req.files && Array.isArray(req.files)) {
+      proofFiles = req.files.map(file => ({
+        url: file.path,
+        publicId: file.filename,
+        fileType: file.mimetype.startsWith('image') ? 'image' : 'document'
+      }));
+    }
 
     // Find the campaign
     const campaign = await Campaign.findById(id);

@@ -147,7 +147,18 @@ exports.verifyEsewa = async (req, res) => {
       return res.status(400).json({ message: 'Missing payment data' });
     }
 
-    const decodedData = JSON.parse(decodeBase64(data));
+    let decodedData;
+    try {
+      // eSewa data might be URL encoded, so decode it first
+      const normalizedData = data.replace(/ /g, '+'); 
+      const decodedString = Buffer.from(normalizedData, 'base64').toString('utf-8');
+      console.log('eSewa Raw Data:', data);
+      console.log('eSewa Decoded String:', decodedString);
+      decodedData = JSON.parse(decodedString);
+    } catch (e) {
+      console.error('eSewa Decoding/Parsing Error:', e);
+      return res.status(400).json({ message: 'Invalid payment data format' });
+    }
     
     // Format: { transaction_code, status, total_amount, transaction_uuid, product_code, signature }
     
