@@ -19,7 +19,7 @@ router.get('/:id/milestones', optionalAuth, getCampaignMilestones);
 router.get('/:id/milestones/:milestoneId', optionalAuth, getMilestoneDetail);
 
 // PUT submit proof for a milestone (creator only)
-router.put('/:id/milestones/:milestoneId/submit', protect, upload.array('proof', 5), submitMilestoneProof);
+router.put('/:id/milestones/:milestoneId/submit', protect, submitMilestoneProof);
 
 // GET fund release history for a campaign
 router.get('/:id/fund-releases', protect, getFundReleaseHistory);

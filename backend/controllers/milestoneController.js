@@ -10,14 +10,18 @@ const submitMilestoneProof = async (req, res) => {
     const { id, milestoneId } = req.params;
     const { progressDescription, nextMilestoneEstimate } = req.body;
     
-    // Map uploaded files to milestone.proofFiles structure
-    let proofFiles = [];
+    // Handle proof files from body (pre-uploaded) or req.files
+    let proofFiles = req.body.proofFiles || [];
+    
+    // If files are uploaded directly (fallback)
     if (req.files && Array.isArray(req.files)) {
-      proofFiles = req.files.map(file => ({
+      const serverUploadedFiles = req.files.map(file => ({
         url: file.path,
         publicId: file.filename,
-        fileType: file.mimetype.startsWith('image') ? 'image' : 'document'
+        fileType: file.mimetype?.startsWith('image') ? 'image' : 
+                  file.mimetype?.startsWith('video') ? 'video' : 'document'
       }));
+      proofFiles = [...proofFiles, ...serverUploadedFiles];
     }
 
     // Find the campaign

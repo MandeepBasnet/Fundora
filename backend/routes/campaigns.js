@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const milestoneRoutes = require('./milestone');
+
 const {
   createCampaign,
   updateCampaign,
@@ -56,5 +58,8 @@ router.post('/:id/updates', protect, upload.fields([
   { name: 'images', maxCount: 3 }, // FN 7.5: 3 images
   { name: 'video', maxCount: 1 }   // FN 7.5: 1 video
 ]), createCampaignUpdate);
+
+// Nested milestone routes
+router.use('/', milestoneRoutes);
 
 module.exports = router;
