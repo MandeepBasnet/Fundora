@@ -16,7 +16,6 @@ backend/scripts/resetFinances.js
 
 # Custom exclusions
 backend/coverage/
-backend/tests/
 backend/app.js
 backend/EXECUTION & DOCUMENTATION GUIDE.md
 backend/tmp_*.js

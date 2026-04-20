@@ -97,3 +97,144 @@ Use the following credentials to test payment gateways in the Sandbox environmen
 - **OTP:** `987654`
 
 > **Note:** If `9800000001` shows "Insufficient Balance", please try the other numbers (02-05) or create a new test user in your [Khalti Sandbox Dashboard](https://sandbox.admin.khalti.com/).
+
+---
+
+## Testing Guide
+
+The complete details for execution, reporting, and isolated test runs are available in the [Backend Execution & Documentation Guide](./backend/EXECUTION%20&%20DOCUMENTATION%20GUIDE.md). Below is a quick start regarding testing.
+
+### Running All Tests
+To run the full suite of integration tests (auth, campaigns, flagging, payments, milestones):
+```bash
+cd backend
+npm run test
+```
+
+To show verbose test outputs (e.g. for API response bodies logging):
+```bash
+npm run test -- --verbose
+```
+
+### Running Tests for a Specific Sprint / File
+You can run individual test files for isolating sprint-specific features:
+```bash
+npm run test -- tests/auth.test.js --verbose
+npm run test -- tests/campaign.test.js --verbose
+npm run test -- tests/payment.test.js --verbose
+npm run test -- tests/milestone.test.js --verbose
+npm run test -- tests/flagging.test.js --verbose
+```
+
+### Test Coverage
+To generate a comprehensive test coverage report:
+```bash
+npm run test:coverage
+```
+*The report will be available in the `backend/coverage` directory.*
+
+---
+
+## Setup and Installation Guide
+
+### Prerequisites
+Make sure you have installed on your local machine:
+- Node.js (v18 or higher recommended)
+- MongoDB (running locally, or a MongoDB Atlas URI)
+
+### Required Packages
+This project is built using the MERN stack with modern libraries.
+
+**Backend Dependencies:**
+- `express`: Web framework
+- `mongoose`: MongoDB object modeling
+- `bcryptjs`: Password hashing
+- `jsonwebtoken`: Authentication
+- `cloudinary`, `multer`, `multer-storage-cloudinary`: File and media uploads
+- `cors`, `dotenv`: Environment and security configuration
+- `nodemailer`: Email notifications
+- `socket.io`: Real-time communication
+- `jest`, `supertest`: Testing framework and HTTP assertions (dev dependencies)
+
+**Frontend Dependencies:**
+- `react`, `react-dom`: UI library
+- `react-router-dom`: Routing
+- `axios`: HTTP client
+- `tailwindcss`, `lucide-react`, `clsx`, `tailwind-merge`: Styling and icons
+- `recharts`: Data visualization
+- `socket.io-client`: Real-time frontend client
+
+### Setup Instructions
+
+**1. Clone the repository**
+```bash
+git clone <repository_url>
+cd Fundora
+```
+
+**2. Backend Setup**
+Navigate to the backend directory and install packages:
+```bash
+cd backend
+npm install
+```
+
+Create a `.env` file in the `backend` directory with these variables:
+```env
+PORT=5000
+MONGODB_URI=your_mongodb_connection_string
+FRONTEND_URL=http://localhost:5173
+
+JWT_SECRET=your_jwt_secret
+REFRESH_TOKEN_SECRET=your_refresh_token_secret
+
+# Email Configuration (Gmail)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_app_password
+EMAIL_FROM=Fundora <your_email@gmail.com>
+
+# OTP Configuration
+OTP_EXPIRY_MINUTES=10
+
+# Cloudinary Configuration
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
+# Payment Gateway Configuration
+# eSewa (Test)
+ESEWA_PRODUCT_CODE=EPAYTEST
+ESEWA_SECRET_KEY=your_esewa_secret
+ESEWA_SUCCESS_URL=http://localhost:5173/payment/success
+ESEWA_FAILURE_URL=http://localhost:5173/payment/failure
+
+# Khalti (Test)
+KHALTI_SECRET_KEY=your_khalti_secret
+KHALTI_INITIATE_URL=https://a.khalti.com/api/v2/epayment/initiate/
+KHALTI_LOOKUP_URL=https://a.khalti.com/api/v2/epayment/lookup/
+KHALTI_RETURN_URL=http://localhost:5173/payment/success
+```
+
+Start the backend server in development mode:
+```bash
+npm run dev
+```
+
+**3. Frontend Setup**
+Navigate to the frontend directory and install packages:
+```bash
+cd ../frontend
+npm install
+```
+
+Create a `.env` file in the `frontend` directory:
+```env
+VITE_API_URL=http://localhost:5000
+```
+
+Start the frontend development server:
+```bash
+npm run dev
+```

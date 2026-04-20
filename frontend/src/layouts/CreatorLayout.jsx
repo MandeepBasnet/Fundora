@@ -10,7 +10,7 @@ export function CreatorLayout() {
   const navigate = useNavigate();
   const { logout } = useAuth();
   
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) => path === '/creator' ? location.pathname === path : location.pathname.startsWith(path);
 
   const handleLogout = () => {
     logout();

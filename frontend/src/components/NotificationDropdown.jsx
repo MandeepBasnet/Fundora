@@ -13,6 +13,7 @@ const NOTIF_TYPE_CONFIG = {
   'project_completed': { icon: CheckCircle2, bg: 'bg-sky-100', color: 'text-sky-600' },
   'backer_milestone_update': { icon: CheckCircle2, bg: 'bg-sky-100', color: 'text-sky-600' },
   'resubmission_required': { icon: ShieldAlert, bg: 'bg-amber-100', color: 'text-amber-600' },
+  'new_comment': { icon: MessageSquare, bg: 'bg-blue-100', color: 'text-blue-600' },
   'default': { icon: Bell, bg: 'bg-slate-100', color: 'text-slate-600' }
 };
 

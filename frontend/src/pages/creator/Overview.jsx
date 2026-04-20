@@ -6,6 +6,21 @@ import {
 import { Button, Card, Badge, Progress, Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
+
+const CustomGanttTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-slate-900 border border-slate-700 text-slate-100 p-3 rounded shadow-lg">
+        <p className="font-bold text-sky-400 mb-1">{data.name}</p>
+        <p className="text-sm">Status: <span className="uppercase">{data.status}</span></p>
+        <p className="text-sm">Duration: {data.duration} days</p>
+      </div>
+    );
+  }
+  return null;
+};
 
 export function Overview() {
   const { user, token } = useAuth();
@@ -295,6 +310,38 @@ export function Overview() {
           </Card>
         </div>
       </div>
+
+      {/* Idea 5: Milestone Timeline & Variance (Gantt-Style Chart) */}
+      {data.milestoneChartData && data.milestoneChartData.length > 0 && (
+        <Card className="p-6 mt-8 shadow-md">
+          <h2 className="text-xl font-bold text-slate-900 mb-2">Milestone Timeline & Variance</h2>
+          <p className="text-sm text-slate-500 mb-6">Visual tracking of project milestone schedules and delays.</p>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                layout="vertical"
+                data={data.milestoneChartData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              >
+                <XAxis type="number" hide />
+                <YAxis dataKey="name" type="category" width={150} tick={{ fill: '#0f172a', fontSize: 13 }} axisLine={{ stroke: '#cbd5e1' }} tickLine={false} />
+                <RechartsTooltip cursor={{fill: 'transparent'}} content={<CustomGanttTooltip />} />
+                <Bar dataKey="startDay" stackId="a" fill="transparent" />
+                <Bar dataKey="duration" stackId="a" radius={[0, 4, 4, 0]}>
+                  {data.milestoneChartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.status === 'completed' ? '#0d9488' : entry.status === 'delayed' ? '#f59e0b' : '#0284c7'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex justify-center gap-6 mt-4 text-sm font-medium text-slate-600">
+            <div className="flex items-center gap-2"><div className="w-3 h-3 bg-[#0d9488] rounded-full"></div>Completed</div>
+            <div className="flex items-center gap-2"><div className="w-3 h-3 bg-[#0284c7] rounded-full"></div>Active</div>
+            <div className="flex items-center gap-2"><div className="w-3 h-3 bg-[#f59e0b] rounded-full"></div>Delayed</div>
+          </div>
+        </Card>
+      )}
     </>
   );
 }

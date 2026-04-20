@@ -8,7 +8,7 @@ const getBackerDashboard = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    // 1. Get all completed transactions for this user
+    // Get all completed transactions for this user
     const userTransactions = await Transaction.find({ user: userId, status: 'completed' })
       .populate({
         path: 'campaign',
@@ -20,7 +20,7 @@ const getBackerDashboard = async (req, res) => {
       })
       .sort({ createdAt: -1 });
 
-    // 2. Calculate Total Backed and Unique Campaigns
+    // Calculate Total Backed and Unique Campaigns
     let totalBacked = 0;
     const uniqueCampaignIds = new Set();
     const activeCampaignsMap = new Map();
@@ -61,7 +61,7 @@ const getBackerDashboard = async (req, res) => {
       date: new Date(t.createdAt).toLocaleDateString()
     }));
 
-    // 3. Recommended Campaigns (Active campaigns not backed by user)
+    // Recommended Campaigns (Active campaigns not backed by user)
     const recommendedQuery = {
       status: 'active',
       _id: { $nin: Array.from(uniqueCampaignIds) }
@@ -202,6 +202,39 @@ const getCreatorDashboard = async (req, res) => {
       date: new Date(t.createdAt).toLocaleDateString()
     }));
 
+    // 5. Milestone Chart Data
+    const milestoneChartData = [];
+    if (primaryCampaign && primaryCampaign.milestones) {
+      const nowMs = Date.now();
+      const startMs = primaryCampaign.startDate ? new Date(primaryCampaign.startDate).getTime() : nowMs;
+
+      // Sort carefully by order
+      const sortedMilestones = [...primaryCampaign.milestones].sort((a, b) => a.order - b.order);
+      
+      sortedMilestones.forEach((m, idx) => {
+        const estMs = new Date(m.estimatedCompletionDate || nowMs + 30*24*60*60*1000).getTime();
+        const endMs = (m.completedAt || m.reviewedAt) ? new Date(m.completedAt || m.reviewedAt).getTime() : estMs;
+        
+        // Start from previous milestone's end or campaign start
+        const prevMs = idx > 0 ? new Date(sortedMilestones[idx - 1].estimatedCompletionDate || startMs).getTime() : startMs;
+        
+        const startDay = Math.max(0, Math.floor((prevMs - startMs) / (1000 * 60 * 60 * 24)));
+        const endDay = Math.floor((endMs - startMs) / (1000 * 60 * 60 * 24));
+        const durationDay = Math.max(1, endDay - startDay);
+
+        let status = 'active';
+        if (m.status === 'completed' || m.status === 'approved') status = 'completed';
+        else if (estMs < nowMs) status = 'delayed';
+
+        milestoneChartData.push({
+          name: m.title.length > 20 ? m.title.substring(0, 20) + '...' : m.title,
+          startDay, // Empty bar before Gantt segment
+          duration: durationDay, // The actual bar
+          status
+        });
+      });
+    }
+
     res.json({
       totalRaised,
       backers: totalBackers,
@@ -211,6 +244,7 @@ const getCreatorDashboard = async (req, res) => {
       pendingMilestones,
       completedMilestones,
       recentBackers,
+      milestoneChartData,
       fundsOverview: {
         totalRaised: primaryCampaign ? primaryCampaign.currentAmount : 0,
         availableForRelease,

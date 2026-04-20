@@ -67,6 +67,7 @@ const io = new Server(server, {
     credentials: true
   }
 });
+app.set('io', io);
 initializeSocket(io);
 
 // Start Background Jobs

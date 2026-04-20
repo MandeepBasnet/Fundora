@@ -390,6 +390,7 @@ const getAdminStats = async (req, res) => {
       time: new Date(t.createdAt).toLocaleTimeString()
     }));
 
+
     res.json({
       pendingApprovals: pendingCampaigns,
       activeCampaigns,
@@ -397,10 +398,10 @@ const getAdminStats = async (req, res) => {
       totalUsers,
       totalCreators,
       totalFunding: totalFunding[0]?.total || 0,
-      monthlyRevenue: (totalFunding[0]?.total || 0) * 0.05, // assuming 5%
+      monthlyRevenue: (totalFunding[0]?.total || 0) * 0.05, // 5%
       pendingReviews: pendingMilestones,
       flaggedCampaigns,
-      platformSuccessRate: 85, // Mock number or calculate based on completed/failed
+      platformSuccessRate: 85, // Mock number
       recentActivity
     });
   } catch (error) {

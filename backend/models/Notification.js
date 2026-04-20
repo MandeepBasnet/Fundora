@@ -10,7 +10,8 @@ const NOTIFICATION_TYPES = [
   'resubmission_required',       // Admin requested resubmission
   'backer_milestone_update',     // Backer notified of milestone progress
   'project_completed',           // All milestones completed
-  'fund_disbursed'               // Fund transfer completed
+  'fund_disbursed',              // Fund transfer completed
+  'new_comment'                  // New comment on campaign
 ];
 
 const notificationSchema = new mongoose.Schema({

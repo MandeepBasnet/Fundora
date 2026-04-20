@@ -10,7 +10,7 @@ export function AdminLayout() {
   const navigate = useNavigate();
   const { logout } = useAuth();
   
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) => path === '/admin' ? location.pathname === path : location.pathname.startsWith(path);
 
   const handleLogout = () => {
     logout();

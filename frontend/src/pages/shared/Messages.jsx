@@ -321,7 +321,7 @@ export function Messages() {
                   </div>
                   <div className="text-xs truncate text-slate-400 mb-1 ml-8">{conv.campaign?.title}</div>
                   <p className={`text-sm truncate ml-8 ${isUnread ? 'text-slate-900 font-medium' : 'text-slate-500'}`}>
-                    {conv.lastMessage ? conv.lastMessage.content : 'No messages yet'}
+                    {conv.lastMessage?.content || 'Started a conversation'}
                   </p>
                 </div>
               );

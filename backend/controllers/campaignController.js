@@ -2,6 +2,8 @@ const Campaign = require('../models/Campaign');
 const Comment = require('../models/Comment');
 const CampaignUpdate = require('../models/CampaignUpdate');
 const Transaction = require('../models/Transaction');
+const Notification = require('../models/Notification');
+const User = require('../models/User');
 const { CAMPAIGN_CATEGORIES, CAMPAIGN_STATUSES } = require('../models/Campaign');
 
 // @desc    Create a new campaign (as draft)
@@ -22,7 +24,9 @@ const createCampaign = async (req, res) => {
       duration,
       fundingType,
       rewardTiers,
-      milestones
+      milestones,
+      images,
+      video
     } = req.body;
 
     // Create campaign with creator set to current user
@@ -37,6 +41,8 @@ const createCampaign = async (req, res) => {
       fundingType,
       rewardTiers: rewardTiers || [],
       milestones: milestones || [],
+      images: images || [],
+      video: video || null,
       status: 'draft'
     });
 
@@ -670,6 +676,75 @@ const addComment = async (req, res) => {
 
     const populatedComment = await Comment.findById(comment._id)
       .populate('author', 'name profile.avatar');
+
+    // --- Notification logic for new comments ---
+    try {
+      const commentAuthorName = req.user.name || 'Someone';
+      const notificationTitle = 'New Comment';
+      const notificationMessage = `${commentAuthorName} commented on "${campaign.title}": "${content.substring(0, 80)}${content.length > 80 ? '...' : ''}"`;
+
+      const recipientIds = new Set();
+
+      // 1. Notify campaign creator (if not the commenter)
+      if (campaign.creator.toString() !== req.user._id.toString()) {
+        recipientIds.add(campaign.creator.toString());
+      }
+
+      // 2. Notify all backers (users with completed transactions)
+      const backerIds = await Transaction.find({
+        campaign: campaignId,
+        status: 'completed'
+      }).distinct('user');
+
+      backerIds.forEach(id => {
+        if (id.toString() !== req.user._id.toString()) {
+          recipientIds.add(id.toString());
+        }
+      });
+
+      // 3. Notify all admins
+      const admins = await User.find({ role: 'admin' }).select('_id');
+      admins.forEach(admin => {
+        if (admin._id.toString() !== req.user._id.toString()) {
+          recipientIds.add(admin._id.toString());
+        }
+      });
+
+      // Create notification documents for each unique recipient
+      const notificationDocs = Array.from(recipientIds).map(recipientId => ({
+        recipient: recipientId,
+        type: 'new_comment',
+        title: notificationTitle,
+        message: notificationMessage,
+        campaign: campaignId,
+        metadata: {
+          commentId: comment._id,
+          commentAuthor: commentAuthorName,
+          campaignTitle: campaign.title
+        }
+      }));
+
+      if (notificationDocs.length > 0) {
+        await Notification.insertMany(notificationDocs);
+      }
+
+      // Emit real-time socket event to each recipient
+      const io = req.app.get('io');
+      if (io) {
+        recipientIds.forEach(recipientId => {
+          io.to(`user_${recipientId}`).emit('new_notification', {
+            type: 'new_comment',
+            title: notificationTitle,
+            message: notificationMessage,
+            campaignId,
+            commentId: comment._id
+          });
+        });
+      }
+    } catch (notifError) {
+      // Don't fail the comment creation if notifications fail
+      console.error('Error creating comment notifications:', notifError);
+    }
 
     res.status(201).json(populatedComment);
   } catch (error) {

@@ -12,6 +12,7 @@ export const SocketProvider = ({ children }) => {
   const { user } = useAuth();
   const [socket, setSocket] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationUnread, setNotificationUnread] = useState(0);
   const [onlineUsersMap, setOnlineUsersMap] = useState({});
 
   useEffect(() => {
@@ -32,6 +33,16 @@ export const SocketProvider = ({ children }) => {
         if (Notification.permission === 'granted') {
           new Notification('New Message on Fundora', {
             body: `${data.message.sender.name}: ${data.message.content.substring(0, 50)}...`,
+            icon: '/vite.svg'
+          });
+        }
+      });
+
+      newSocket.on('new_notification', (data) => {
+        setNotificationUnread(prev => prev + 1);
+        if (Notification.permission === 'granted') {
+          new Notification(data.title || 'Fundora Notification', {
+            body: data.message || 'You have a new notification',
             icon: '/vite.svg'
           });
         }
@@ -63,7 +74,7 @@ export const SocketProvider = ({ children }) => {
   }, [user]);
 
   return (
-    <SocketContext.Provider value={{ socket, unreadCount, setUnreadCount, onlineUsersMap }}>
+    <SocketContext.Provider value={{ socket, unreadCount, setUnreadCount, notificationUnread, setNotificationUnread, onlineUsersMap }}>
       {children}
     </SocketContext.Provider>
   );

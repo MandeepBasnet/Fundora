@@ -101,9 +101,19 @@ export function Navbar() {
                   onClick={() => setIsNotifOpen(!isNotifOpen)}
                 >
                   <Bell className="w-5 h-5" />
-                  <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                  {(socketContext?.notificationUnread > 0) && (
+                    <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                  )}
                 </button>
-                <NotificationDropdown isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} />
+                <NotificationDropdown 
+                  isOpen={isNotifOpen} 
+                  onClose={() => {
+                    setIsNotifOpen(false);
+                    if (socketContext?.setNotificationUnread) {
+                      socketContext.setNotificationUnread(0);
+                    }
+                  }} 
+                />
               </div>
             )}
 
