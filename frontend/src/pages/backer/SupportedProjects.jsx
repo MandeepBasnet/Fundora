@@ -180,7 +180,11 @@ function ProjectCard({ project }) {
         <Button variant="outline" size="sm" onClick={handleMessageCreator}>
           <MessageSquare className="w-4 h-4 mr-2" /> Message Creator
         </Button>
-        <Button size="sm" className="bg-sky-600 hover:bg-sky-700 text-white">
+        <Button 
+          size="sm" 
+          className="bg-sky-600 hover:bg-sky-700 text-white"
+          onClick={() => navigate(`/campaigns/${project.id}`)}
+        >
           <ExternalLink className="w-4 h-4 mr-2" /> View Campaign
         </Button>
       </div>

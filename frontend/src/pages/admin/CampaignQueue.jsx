@@ -277,9 +277,6 @@ export function CampaignQueue() {
           <TabsTrigger value="edits" className="px-6">
             Edit Requests <Badge className="ml-2 bg-purple-100 text-purple-700 border-none">{editRequests.length}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="milestones" className="px-6">
-            Milestones <Badge className="ml-2 bg-orange-100 text-orange-700 border-none">0</Badge>
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="campaigns">
@@ -450,14 +447,6 @@ export function CampaignQueue() {
             )}
           </Card>
         </TabsContent>
-
-        <TabsContent value="milestones">
-          <Card className="border-slate-200 p-12 text-center">
-            <Clock className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-900">No pending milestones</h3>
-            <p className="text-slate-500">Milestone verifications will appear here.</p>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       {/* Edit Review Modal */}
@@ -498,8 +487,18 @@ export function CampaignQueue() {
                                   />
                                 ))}
                               </div>
+                            ) : field === 'rewardTiers' || field === 'milestones' ? (
+                              <div className="space-y-1">
+                                {Array.isArray(editReviewModal.campaign[field]) && editReviewModal.campaign[field].map((item, i) => (
+                                  <div key={i} className="bg-white/50 p-1.5 rounded text-xs border border-slate-100">
+                                    {item.title || item.name || `Item ${i+1}`} {item.amount ? `- Rs. ${item.amount}` : item.percentage ? `- ${item.percentage}%` : ''}
+                                  </div>
+                                ))}
+                              </div>
                             ) : (
-                              typeof editReviewModal.campaign[field] === 'object' ? JSON.stringify(editReviewModal.campaign[field]) : String(editReviewModal.campaign[field])
+                              typeof editReviewModal.campaign[field] === 'object' ? 
+                                <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(editReviewModal.campaign[field], null, 2)}</pre> : 
+                                String(editReviewModal.campaign[field])
                             )}
                           </div>
                         </div>
@@ -517,8 +516,18 @@ export function CampaignQueue() {
                                   />
                                 ))}
                               </div>
+                            ) : field === 'rewardTiers' || field === 'milestones' ? (
+                              <div className="space-y-1">
+                                {Array.isArray(value) && value.map((item, i) => (
+                                  <div key={i} className="bg-white/50 p-1.5 rounded text-xs border border-slate-100">
+                                    {item.title || item.name || `Item ${i+1}`} {item.amount ? `- Rs. ${item.amount}` : item.percentage ? `- ${item.percentage}%` : ''}
+                                  </div>
+                                ))}
+                              </div>
                             ) : (
-                              typeof value === 'object' ? JSON.stringify(value) : String(value)
+                              typeof value === 'object' ? 
+                                <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(value, null, 2)}</pre> : 
+                                String(value)
                             )}
                           </div>
                         </div>

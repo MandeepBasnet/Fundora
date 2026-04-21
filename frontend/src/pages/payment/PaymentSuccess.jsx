@@ -101,7 +101,7 @@ const PaymentSuccess = () => {
        )}
 
       <div className="space-x-4">
-        <Link to="/history" className="px-6 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition">
+        <Link to="/dashboard/transactions" className="px-6 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition">
           View History
         </Link>
         <Link to="/" className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition">
