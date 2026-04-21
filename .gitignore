@@ -14,9 +14,3 @@ backend/scripts/seedData.js
 backend/scripts/generateTestData.js
 backend/scripts/resetFinances.js
 
-# Custom exclusions
-backend/coverage/
-backend/app.js
-backend/EXECUTION & DOCUMENTATION GUIDE.md
-backend/tmp_*.js
-sprints_documentation/
