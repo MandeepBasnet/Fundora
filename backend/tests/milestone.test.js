@@ -1,13 +1,5 @@
 /**
  * Fundora - Milestone & Fund Release Tests
- * Covers:
- * - Milestone proof submission (valid, no files, no description)
- * - Sequential milestone order enforcement
- * - Fund release prerequisite check (released_amount gate)
- * - Admin: ApproveMilestone, RejectMilestone, RequestResubmission
- * - Fund Release (Admin): 5% platform fee calculation, partial release
- * - Fund Release boundary cases (no available funds, over-release)
- * - Fund Release rollback
  */
 
 const request = require('supertest');

@@ -1,31 +1,17 @@
-/**
- * ============================================================
- * Fundora - Auth & OTP Flow Tests
- * ============================================================
- * Covers:
- *  - User Registration (happy path, duplicate, missing fields)
- *  - OTP Verification (valid, invalid, expired, missing)
- *  - OTP Resend
- *  - Login (verified, unverified, wrong credentials, banned)
- *  - JWT Token Refresh & Logout
- *  - JWT Guard (missing token, malformed token, wrong secret)
- * ============================================================
- */
-
 const request = require('supertest');
 const mongoose = require('mongoose');
 const app = require('../app');
 const User = require('../models/User');
 const { connectTestDB, closeTestDB, clearTestDB } = require('./setup');
 
-// ─── Mock email service so no real emails are sent ───────────────────────────
+// # Mock email service
 jest.mock('../utils/emailService', () => ({
   generateOTP: jest.fn(() => '123456'), // always return predictable OTP
   sendOTPEmail: jest.fn().mockResolvedValue(true),
   sendReceiptEmail: jest.fn().mockResolvedValue(true),
 }));
 
-// ─── Lifecycle ───────────────────────────────────────────────────────────────
+// # Lifecycle
 beforeAll(async () => {
   await connectTestDB();
 
@@ -46,9 +32,7 @@ beforeEach(async () => {
   jest.clearAllMocks();
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HELPER
-// ─────────────────────────────────────────────────────────────────────────────
+// # Helpers
 const registerUser = (overrides = {}) =>
   request(app)
     .post('/api/auth/register')
@@ -60,11 +44,9 @@ const registerUser = (overrides = {}) =>
       ...overrides,
     });
 
-// ═════════════════════════════════════════════════════════════════════════════
-// 1. REGISTRATION
-// ═════════════════════════════════════════════════════════════════════════════
+// # 1. REGISTRATION
 describe('POST /api/auth/register', () => {
-  // ── Happy Path ─────────────────────────────────────────────────────────────
+  // # Happy Path
   it('[HAPPY] should register a new user and return 201 with user data (no token)', async () => {
     const res = await registerUser();
 
@@ -105,7 +87,7 @@ describe('POST /api/auth/register', () => {
     expect(sendOTPEmail).toHaveBeenCalledTimes(1);
   });
 
-  // ── Negative / Failure Cases ───────────────────────────────────────────────
+  // # Negative Cases
   it('[NEGATIVE] should return 400 if email is already registered', async () => {
     await registerUser();
     const res = await registerUser(); // second attempt, same email
@@ -124,11 +106,9 @@ describe('POST /api/auth/register', () => {
   });
 });
 
-// ═════════════════════════════════════════════════════════════════════════════
-// 2. OTP VERIFICATION
-// ═════════════════════════════════════════════════════════════════════════════
+// # 2. OTP VERIFICATION
 describe('POST /api/otp/verify', () => {
-  // ── Happy Path ─────────────────────────────────────────────────────────────
+  // # Happy Path
   it('[HAPPY] should verify OTP, mark user as verified, and return JWT tokens', async () => {
     // Arrange: register a user first
     await registerUser();
@@ -162,7 +142,7 @@ describe('POST /api/otp/verify', () => {
     expect(afterUser.isVerified).toBe(true);
   });
 
-  // ── Negative Cases ─────────────────────────────────────────────────────────
+  // # Negative Cases
   it('[NEGATIVE] should return 400 for an incorrect OTP', async () => {
     await registerUser();
     const res = await request(app)
@@ -212,7 +192,7 @@ describe('POST /api/otp/verify', () => {
     expect(res.body.message).toMatch(/already verified/i);
   });
 
-  // ── Failure / Expired OTP ──────────────────────────────────────────────────
+  // # Failure / Expired OTP
   it('[FAILURE] should return 400 and clear OTP when it has expired', async () => {
     // Arrange: create user with expired OTP
     await request(app)
@@ -239,9 +219,7 @@ describe('POST /api/otp/verify', () => {
   });
 });
 
-// ═════════════════════════════════════════════════════════════════════════════
-// 3. OTP RESEND
-// ═════════════════════════════════════════════════════════════════════════════
+// # 3. OTP RESEND
 describe('POST /api/otp/resend', () => {
   it('[HAPPY] should resend OTP and update the expiry time in DB', async () => {
     const { sendOTPEmail } = require('../utils/emailService');
@@ -286,11 +264,9 @@ describe('POST /api/otp/resend', () => {
   });
 });
 
-// ═════════════════════════════════════════════════════════════════════════════
-// 4. LOGIN
-// ═════════════════════════════════════════════════════════════════════════════
+// # 4. LOGIN
 describe('POST /api/auth/login', () => {
-  // ── Setup: register + verify a user ───────────────────────────────────────
+  // # Setup
   beforeEach(async () => {
     await registerUser();
     const dbUser = await User.findOne({ email: 'test@fundora.com' });
@@ -299,7 +275,7 @@ describe('POST /api/auth/login', () => {
       .send({ email: 'test@fundora.com', otp: dbUser.otp.code });
   });
 
-  // ── Happy Path ─────────────────────────────────────────────────────────────
+  // # Happy Path
   it('[HAPPY] should login a verified user and return accessToken + refreshToken', async () => {
     const res = await request(app)
       .post('/api/auth/login')
@@ -334,7 +310,7 @@ describe('POST /api/auth/login', () => {
     expect(dbUser.refreshToken.length).toBeLessThanOrEqual(5);
   });
 
-  // ── Negative Cases ─────────────────────────────────────────────────────────
+  // # Negative Cases
   it('[NEGATIVE] should return 401 for wrong password', async () => {
     const res = await request(app)
       .post('/api/auth/login')
@@ -372,7 +348,7 @@ describe('POST /api/auth/login', () => {
     expect(dbUser).not.toBeNull();
   });
 
-  // ── Banned / Suspended User ────────────────────────────────────────────────
+  // # Banned / Suspended User
   it('[FAILURE] should return 403 for a permanently banned user making a protected request', async () => {
     // Ban the user
     await User.findOneAndUpdate(
@@ -397,9 +373,7 @@ describe('POST /api/auth/login', () => {
   });
 });
 
-// ═════════════════════════════════════════════════════════════════════════════
-// 5. TOKEN REFRESH
-// ═════════════════════════════════════════════════════════════════════════════
+// # 5. TOKEN REFRESH
 describe('POST /api/auth/refresh', () => {
   let validRefreshToken;
 
@@ -444,9 +418,7 @@ describe('POST /api/auth/refresh', () => {
   });
 });
 
-// ═════════════════════════════════════════════════════════════════════════════
-// 6. JWT GUARD (Auth Middleware)
-// ═════════════════════════════════════════════════════════════════════════════
+// # 6. JWT GUARD
 describe('JWT Guard - Protected Route Access', () => {
   it('[NEGATIVE] should return 401 when no Authorization header is sent', async () => {
     const res = await request(app).get('/api/campaigns/my');
@@ -501,9 +473,7 @@ describe('JWT Guard - Protected Route Access', () => {
   });
 });
 
-// ═════════════════════════════════════════════════════════════════════════════
-// 7. LOGOUT
-// ═════════════════════════════════════════════════════════════════════════════
+// # 7. LOGOUT
 describe('POST /api/auth/logout', () => {
   it('[HAPPY] should remove the refreshToken from the DB on logout', async () => {
     await registerUser();

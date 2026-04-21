@@ -148,7 +148,7 @@ export function BackerDashboard() {
             {data.recentTransactions.length === 0 ? (
               <p className="text-sm text-slate-500">No recent activity.</p>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                 {data.recentTransactions.map((txn) => (
                   <div key={txn.id} className="flex items-start gap-3">
                     <div className="p-2 bg-slate-100 rounded-full text-slate-500 mt-1">
@@ -163,6 +163,40 @@ export function BackerDashboard() {
                 ))}
               </div>
             )}
+          </Card>
+
+          {/* Active Conversations (FN-8.1) */}
+          <Card className="p-6 border-slate-200 shadow-md">
+            <h3 className="font-bold text-lg text-slate-900 mb-4">Active Conversations</h3>
+            {!data.activeConversations || data.activeConversations.length === 0 ? (
+              <p className="text-sm text-slate-500">No active conversations.</p>
+            ) : (
+              <div className="space-y-4">
+                {data.activeConversations.map((conv) => (
+                  <Link key={conv.id} to="/dashboard/messages" className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-100 group">
+                    <div className="relative">
+                      {conv.avatar ? (
+                        <img src={conv.avatar} alt={conv.creatorName} className="w-10 h-10 rounded-full object-cover border border-slate-200" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 font-bold group-hover:bg-sky-200 transition-colors">
+                          {conv.creatorName.charAt(0)}
+                        </div>
+                      )}
+                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-slate-900 truncate">{conv.creatorName}</p>
+                      <p className="text-xs text-slate-500 truncate">{conv.lastMessage}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+            <Link to="/dashboard/messages">
+              <Button variant="ghost" size="sm" className="w-full mt-4 text-sky-600 hover:text-sky-700 hover:bg-sky-50">
+                Go to Messages
+              </Button>
+            </Link>
           </Card>
         </div>
       </div>

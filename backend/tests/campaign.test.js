@@ -1,13 +1,5 @@
 /**
  * Fundora - Campaign Management Tests
- * Covers:
- * - Campaign Creation (creator, backer restriction, validation)
- * - Draft Saving & Update
- * - Campaign Submission for Approval
- * - Admin Approval & Rejection Workflow
- * - Get Campaigns (public listing, my campaigns, single camp)
- * - Campaign Deletion (draft vs active)
- * - Backer role restriction enforcement
  */
 
 const request = require('supertest');
@@ -54,9 +46,6 @@ beforeEach(async () => {
   jest.clearAllMocks();
 });
 
-/**
- * Registers, verifies OTP, logs in, and returns the auth token.
- */
 const createAndLoginUser = async ({
   name = 'Test User',
   email = 'creator@fundora.com',
@@ -79,9 +68,6 @@ const createAndLoginUser = async ({
   return loginRes.body.token;
 };
 
-/**
- * Returns a minimal VALID campaign payload for creation.
- */
 const validCampaignPayload = (overrides = {}) => ({
   title: 'My Awesome Test Campaign',
   description:
@@ -159,7 +145,7 @@ describe('POST /api/campaigns - Create Campaign', () => {
       .send(validCampaignPayload());
 
     expect(res.statusCode).toBe(403);
-    // Updated expectation to match the actual API error message
+    // # Happy Path
     expect(res.body.message).toMatch(/not authorized/i);
   });
 

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  PlusCircle, DollarSign, CheckCircle2, Clock, AlertCircle, Upload, Eye, TrendingUp, Wallet, Users, Loader2
+  PlusCircle, DollarSign, CheckCircle2, Clock, AlertCircle, Upload, Eye, TrendingUp, Wallet, Users, Loader2, Download
 } from 'lucide-react';
 import { Button, Card, Badge, Progress, Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
-import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
+import { LineChart, Line, PieChart, Pie, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, CartesianGrid, Legend } from 'recharts';
 
 const CustomGanttTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
@@ -47,6 +47,33 @@ export function Overview() {
       fetchDashboardData();
     }
   }, [token]);
+
+  const downloadCSV = () => {
+    if (!data) return;
+    const trends = data.fundingTrendsData || [];
+    const rewards = data.rewardPopularityData || [];
+    
+    let csvContent = "data:text/csv;charset=utf-8,";
+    
+    // Trends section
+    csvContent += "Funding Trends\nDate,Amount\n";
+    trends.forEach(row => {
+      csvContent += `${row.date},${row.amount}\n`;
+    });
+    
+    csvContent += "\nReward Popularity\nReward Title,Quantity Claimed\n";
+    rewards.forEach(row => {
+      csvContent += `"${row.title}",${row.quantityClaimed || row.count}\n`;
+    });
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `campaign_analytics_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   if (loading) {
     return (
@@ -342,6 +369,148 @@ export function Overview() {
           </div>
         </Card>
       )}
+
+      {/* My Campaigns Summary (FN-8.2) */}
+      <Card className="p-6 mt-8 shadow-md border-slate-200">
+        <h2 className="text-xl font-bold text-slate-900 mb-6">My Campaigns Summary</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th className="px-4 py-3 font-semibold">Campaign Title</th>
+                <th className="px-4 py-3 font-semibold">Status</th>
+                <th className="px-4 py-3 font-semibold">Goal</th>
+                <th className="px-4 py-3 font-semibold">Raised</th>
+                <th className="px-4 py-3 font-semibold">Days Left</th>
+                <th className="px-4 py-3 font-semibold text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {data.allCampaigns?.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-8 text-slate-500">No campaigns found.</td>
+                </tr>
+              ) : (
+                data.allCampaigns?.map((campaign) => (
+                  <tr key={campaign.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-4 py-4 font-medium text-slate-900">{campaign.title}</td>
+                    <td className="px-4 py-4">
+                      <Badge variant="outline" className={`capitalize ${
+                        campaign.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' :
+                        campaign.status === 'pending' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                        'bg-slate-50 text-slate-700 border-slate-100'
+                      }`}>
+                        {campaign.status}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-4 text-slate-600">Rs. {campaign.goal.toLocaleString()}</td>
+                    <td className="px-4 py-4 font-bold text-sky-600">Rs. {campaign.raised.toLocaleString()}</td>
+                    <td className="px-4 py-4 text-slate-600">{campaign.daysLeft} days</td>
+                    <td className="px-4 py-4 text-right">
+                      <Link to={`/campaigns/${campaign.id}`}>
+                        <Button variant="ghost" size="sm" className="text-sky-600 hover:text-sky-700 hover:bg-sky-50">View</Button>
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {/* Campaign Analytics (FN-8.4) */}
+      <div className="mt-8 space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-slate-900">Campaign Analytics</h2>
+          <Button onClick={downloadCSV} className="bg-sky-600 hover:bg-sky-700 gap-2">
+            <Download className="w-4 h-4" /> Download Analytics (CSV)
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-2 p-6 shadow-md border-slate-200">
+            <h3 className="font-bold text-slate-900 mb-6">Daily Funding Trend</h3>
+            <div className="h-[300px]">
+              {data.fundingTrendsData?.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={data.fundingTrendsData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="date" tick={{fontSize: 12, fill: '#64748b'}} axisLine={false} tickLine={false} />
+                    <YAxis tick={{fontSize: 12, fill: '#64748b'}} axisLine={false} tickLine={false} />
+                    <RechartsTooltip />
+                    <Line type="monotone" dataKey="amount" stroke="#0284c7" strokeWidth={3} dot={{r: 4, fill: '#0284c7'}} activeDot={{r: 6}} />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-slate-400">No funding data available yet</div>
+              )}
+            </div>
+          </Card>
+
+          <Card className="p-6 shadow-md border-slate-200 flex flex-col justify-center items-center">
+            <h3 className="font-bold text-slate-900 mb-4 text-center w-full">Conversion Rate</h3>
+            <div className="relative flex items-center justify-center">
+              <svg className="w-32 h-32 transform -rotate-90">
+                <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="12" fill="transparent" className="text-slate-100" />
+                <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="12" fill="transparent" strokeDasharray={364} strokeDashoffset={364 - (364 * (data.conversionRate || 0)) / 100} className="text-sky-600" />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-2xl font-bold text-slate-900">{data.conversionRate || 0}%</span>
+              </div>
+            </div>
+            <p className="text-sm text-slate-500 mt-4 text-center">Percentage of visitors who backed your campaign</p>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="p-6 shadow-md border-slate-200">
+            <h3 className="font-bold text-slate-900 mb-6">Backer Demographics</h3>
+            <div className="h-[300px]">
+              {data.demographicsData ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={Object.entries(data.demographicsData).map(([name, value]) => ({ name, value }))}
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {Object.entries(data.demographicsData).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={['#0284c7', '#0ea5e9', '#38bdf8', '#7dd3fc', '#bae6fd'][index % 5]} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-slate-400">No demographic data available</div>
+              )}
+            </div>
+          </Card>
+
+          <Card className="p-6 shadow-md border-slate-200">
+            <h3 className="font-bold text-slate-900 mb-6">Reward Tier Popularity</h3>
+            <div className="h-[300px]">
+              {data.rewardPopularityData?.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data.rewardPopularityData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="title" tick={{fontSize: 10, fill: '#64748b'}} axisLine={false} tickLine={false} />
+                    <YAxis tick={{fontSize: 12, fill: '#64748b'}} axisLine={false} tickLine={false} />
+                    <RechartsTooltip />
+                    <Bar dataKey="quantityClaimed" fill="#0284c7" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-slate-400">No reward tier data available</div>
+              )}
+            </div>
+          </Card>
+        </div>
+      </div>
     </>
   );
 }

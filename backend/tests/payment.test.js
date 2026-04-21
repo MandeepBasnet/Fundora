@@ -1,15 +1,5 @@
 /**
  * Fundora - Payment Processing Tests (eSewa & Khalti)
- * Covers:
- * - Payment Initialization (eSewa, Khalti, invalid method)
- * - Minimum amount boundary (NPR 9 vs NPR 10)
- * - Creator restriction (creators cannot back)
- * - Khalti: mock fetch interceptor (pidx returned)
- * - Khalti Verification: valid pidx, fake/non-existent pidx, non-Completed status
- * - eSewa Verification: valid base64 payload, tampered data, non-COMPLETE status, missing data
- * - Idempotency: double-verifying same transaction
- * - Payment Failure Handler
- * - Reward Redemption: happy path, pending transaction rejection
  */
 
 const request = require('supertest');

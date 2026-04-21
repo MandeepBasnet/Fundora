@@ -365,7 +365,10 @@ const getAdminStats = async (req, res) => {
       totalUsers,
       totalCreators,
       totalFunding,
-      pendingMilestones
+      pendingMilestones,
+      monthlyRevenueData,
+      completedCampaigns,
+      totalNonDraftCampaigns
     ] = await Promise.all([
       Campaign.countDocuments({ status: 'pending' }),
       Campaign.countDocuments({ status: 'active' }),
@@ -375,7 +378,18 @@ const getAdminStats = async (req, res) => {
         { $match: { status: { $in: ['active', 'completed'] } } },
         { $group: { _id: null, total: { $sum: '$currentAmount' } } }
       ]),
-      Campaign.countDocuments({ 'milestones.status': 'submitted' })
+      Campaign.countDocuments({ 'milestones.status': 'submitted' }),
+      Transaction.aggregate([
+        { 
+          $match: { 
+            status: 'completed',
+            createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+          } 
+        },
+        { $group: { _id: null, revenue: { $sum: { $multiply: ["$amount", 0.05] } } } }
+      ]),
+      Campaign.countDocuments({ status: 'completed' }),
+      Campaign.countDocuments({ status: { $in: ['active', 'completed', 'rejected', 'terminated'] } })
     ]);
 
     const { Flag } = require('../models/Flag'); // Require Flag here to avoid circular dep issues at top
@@ -391,6 +405,10 @@ const getAdminStats = async (req, res) => {
     }));
 
 
+    const platformSuccessRate = totalNonDraftCampaigns > 0 
+      ? Math.round((completedCampaigns / totalNonDraftCampaigns) * 100) 
+      : 0;
+
     res.json({
       pendingApprovals: pendingCampaigns,
       activeCampaigns,
@@ -398,10 +416,10 @@ const getAdminStats = async (req, res) => {
       totalUsers,
       totalCreators,
       totalFunding: totalFunding[0]?.total || 0,
-      monthlyRevenue: (totalFunding[0]?.total || 0) * 0.05, // 5%
+      monthlyRevenue: monthlyRevenueData[0]?.revenue || 0,
       pendingReviews: pendingMilestones,
       flaggedCampaigns,
-      platformSuccessRate: 85, // Mock number
+      platformSuccessRate,
       recentActivity
     });
   } catch (error) {

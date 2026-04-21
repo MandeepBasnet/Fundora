@@ -1,20 +1,3 @@
-/**
- * ============================================================
- * Fundora - Flagging & Community Moderation Tests
- * ============================================================
- * Covers:
- *  - Creating a flag (happy path, duplicate, restricted user)
- *  - Auto-suspension at EXACTLY 5-flag boundary
- *  - Below threshold (4 flags) → campaign stays active
- *  - Admin resolving flags (uphold → creator warning progression)
- *  - Admin dismissing flags (flag marked malicious → falseFlagCount++)
- *  - Flagging restriction after 3 malicious flags
- *  - Campaign restoration from suspended state
- *  - Non-existent campaign flagging
- *  - Auth guards on all admin flag endpoints
- * ============================================================
- */
-
 const request = require('supertest');
 const mongoose = require('mongoose');
 const app = require('../app');
@@ -23,7 +6,7 @@ const Campaign = require('../models/Campaign');
 const Flag = require('../models/Flag');
 const { connectTestDB, closeTestDB, clearTestDB } = require('./setup');
 
-// ─── Mock all email functions ─────────────────────────────────────────────────
+// # Mock all email functions
 jest.mock('../utils/emailService', () => ({
   generateOTP: jest.fn(() => '123456'),
   sendOTPEmail: jest.fn().mockResolvedValue(true),
@@ -37,7 +20,7 @@ jest.mock('../utils/emailService', () => ({
   sendDisbursementReceiptEmail: jest.fn().mockResolvedValue(true),
 }));
 
-// ─── Lifecycle ────────────────────────────────────────────────────────────────
+// # Lifecycle
 beforeAll(async () => {
   await connectTestDB();
   process.env.JWT_SECRET = process.env.JWT_SECRET || 'test_jwt_secret_fundora';
@@ -55,9 +38,9 @@ beforeEach(async () => {
   jest.clearAllMocks();
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
+// # 
 // HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
+// # 
 
 /** Registers + verifies + logs in. Returns token. */
 const loginUser = async ({ name, email, password = 'Password123!', role }) => {
@@ -108,9 +91,9 @@ const validFlagBody = (campaignId, overrides = {}) => ({
   ...overrides,
 });
 
-// ═════════════════════════════════════════════════════════════════════════════
+// # 
 // 1. CREATING FLAGS
-// ═════════════════════════════════════════════════════════════════════════════
+// # 
 describe('POST /api/flags - Create Flag / Report', () => {
   let reporterToken;
   let targetCampaignId;
@@ -124,7 +107,7 @@ describe('POST /api/flags - Create Flag / Report', () => {
     targetCampaignId = campaign._id.toString();
   });
 
-  // ── Happy Path ─────────────────────────────────────────────────────────────
+  // # Happy Path
   it('[HAPPY] should create a flag and return 201 with flag id + status', async () => {
     const res = await request(app)
       .post('/api/flags')
@@ -158,7 +141,7 @@ describe('POST /api/flags - Create Flag / Report', () => {
     expect(sendFlagReceivedEmail).toHaveBeenCalledTimes(1);
   });
 
-  // ── Duplicate Flag ─────────────────────────────────────────────────────────
+  // # Duplicate Flag
   it('[NEGATIVE] should return 400 if the same user tries to flag the same campaign twice', async () => {
     await request(app)
       .post('/api/flags')
@@ -175,7 +158,7 @@ describe('POST /api/flags - Create Flag / Report', () => {
     expect(res.body.message).toMatch(/already reported/i);
   });
 
-  // ── Campaign Not Found ─────────────────────────────────────────────────────
+  // # Campaign Not Found
   it('[NEGATIVE] should return 404 when flagging a non-existent campaign', async () => {
     const fakeId = new mongoose.Types.ObjectId();
     const res = await request(app)
@@ -188,7 +171,7 @@ describe('POST /api/flags - Create Flag / Report', () => {
     expect(res.body.message).toMatch(/campaign not found/i);
   });
 
-  // ── Auth Guard ─────────────────────────────────────────────────────────────
+  // # Auth Guard
   it('[NEGATIVE] should return 401 when no auth token is provided', async () => {
     const res = await request(app)
       .post('/api/flags')
@@ -198,7 +181,7 @@ describe('POST /api/flags - Create Flag / Report', () => {
     expect(res.statusCode).toBe(401);
   });
 
-  // ── Flagging Restriction ───────────────────────────────────────────────────
+  // # Flagging Restriction
   it('[NEGATIVE] should return 403 when reporter has an active flagging restriction', async () => {
     // Manually restrict the reporter
     const futureDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days ahead
@@ -217,7 +200,7 @@ describe('POST /api/flags - Create Flag / Report', () => {
     expect(res.body.message).toMatch(/restricted from submitting reports/i);
   });
 
-  // ── Validation: short description ──────────────────────────────────────────
+  // # Validation
   it('[NEGATIVE] should return 400 when flag description is too short (< 100 chars)', async () => {
     const res = await request(app)
       .post('/api/flags')
@@ -234,9 +217,9 @@ describe('POST /api/flags - Create Flag / Report', () => {
   });
 });
 
-// ═════════════════════════════════════════════════════════════════════════════
+// # 
 // 2. AUTO-SUSPENSION BOUNDARY TEST (EXACTLY 5 FLAGS)
-// ═════════════════════════════════════════════════════════════════════════════
+// # 
 describe('Auto-Suspension Trigger — 5-Flag Boundary', () => {
   let creatorCampaignId;
   let backersTokens;
@@ -334,9 +317,9 @@ describe('Auto-Suspension Trigger — 5-Flag Boundary', () => {
   });
 });
 
-// ═════════════════════════════════════════════════════════════════════════════
+// # 
 // 3. ADMIN FLAG RESOLUTION
-// ═════════════════════════════════════════════════════════════════════════════
+// # 
 describe('PATCH /api/flags/admin/:id/resolve - Admin Resolves Flags', () => {
   let adminToken;
   let reporterUser;
@@ -366,7 +349,7 @@ describe('PATCH /api/flags/admin/:id/resolve - Admin Resolves Flags', () => {
     await Campaign.findByIdAndUpdate(campaign._id, { $inc: { activeFlagCount: 1 } });
   });
 
-  // ── Uphold Flag ────────────────────────────────────────────────────────────
+  // # Uphold Flag
   it('[HAPPY] admin should uphold a flag and warn the creator (1st strike)', async () => {
     const { sendCreatorWarningEmail } = require('../utils/emailService');
 
@@ -435,7 +418,7 @@ describe('PATCH /api/flags/admin/:id/resolve - Admin Resolves Flags', () => {
     expect(sendCampaignTerminatedEmail).toHaveBeenCalled();
   });
 
-  // ── Dismiss Flag ───────────────────────────────────────────────────────────
+  // # Dismiss Flag
   it('[HAPPY] admin should dismiss a flag and mark it as dismissed', async () => {
     const res = await request(app)
       .patch(`/api/flags/admin/${flag._id}/resolve`)
@@ -495,7 +478,7 @@ describe('PATCH /api/flags/admin/:id/resolve - Admin Resolves Flags', () => {
     expect(daysRemaining).toBeLessThanOrEqual(31);
   });
 
-  // ── Idempotency & Error Cases ──────────────────────────────────────────────
+  // # Idempotency
   it('[NEGATIVE] should return 400 when trying to resolve an already-resolved flag', async () => {
     // Resolve first time
     await request(app)
@@ -542,9 +525,9 @@ describe('PATCH /api/flags/admin/:id/resolve - Admin Resolves Flags', () => {
   });
 });
 
-// ═════════════════════════════════════════════════════════════════════════════
+// # 
 // 4. CAMPAIGN RESTORATION
-// ═════════════════════════════════════════════════════════════════════════════
+// # 
 describe('PATCH /api/flags/admin/campaigns/:id/restore - Restore Suspended Campaign', () => {
   let adminToken;
   let suspendedCampaignId;
@@ -649,9 +632,9 @@ describe('PATCH /api/flags/admin/campaigns/:id/restore - Restore Suspended Campa
   });
 });
 
-// ═════════════════════════════════════════════════════════════════════════════
+// # 
 // 5. ADMIN FLAG LISTING
-// ═════════════════════════════════════════════════════════════════════════════
+// # 
 describe('GET /api/flags/admin - Admin Flag List', () => {
   let adminToken;
 

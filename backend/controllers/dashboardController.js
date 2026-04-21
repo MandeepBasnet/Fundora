@@ -1,5 +1,7 @@
 const Campaign = require('../models/Campaign');
 const Transaction = require('../models/Transaction');
+const Conversation = require('../models/Conversation');
+const Message = require('../models/Message');
 
 // @desc    Get Backer Dashboard Data
 // @route   GET /api/dashboard/backer
@@ -53,13 +55,34 @@ const getBackerDashboard = async (req, res) => {
       }
     });
 
-    // Recent Transactions (limit 5)
-    const recentTransactions = userTransactions.slice(0, 5).map(t => ({
+    // Recent Transactions (limit 10 - FN-8.1)
+    const recentTransactions = userTransactions.slice(0, 10).map(t => ({
       id: t._id,
       description: `Supported ${t.campaign?.title || 'a campaign'}`,
       amount: t.amount,
       date: new Date(t.createdAt).toLocaleDateString()
     }));
+
+    // Active Conversations (FN-8.1)
+    const activeConversations = await Conversation.find({ 
+      participants: userId 
+    })
+    .populate('campaign', 'title')
+    .populate('participants', 'name profile')
+    .populate('lastMessage')
+    .sort({ updatedAt: -1 })
+    .limit(5);
+
+    const formattedConversations = activeConversations.map(conv => {
+      const otherParticipant = conv.participants.find(p => p._id.toString() !== userId.toString());
+      return {
+        id: conv._id,
+        creatorName: otherParticipant?.name || 'Creator',
+        avatar: otherParticipant?.profile?.avatar || '',
+        lastMessage: conv.lastMessage?.content || 'No messages yet',
+        campaignTitle: conv.campaign?.title || 'Unknown Campaign'
+      };
+    });
 
     // Recommended Campaigns (Active campaigns not backed by user)
     const recommendedQuery = {
@@ -109,6 +132,7 @@ const getBackerDashboard = async (req, res) => {
       campaignsBacked: uniqueCampaignIds.size,
       activeCampaigns: Array.from(activeCampaignsMap.values()),
       recentTransactions,
+      activeConversations: formattedConversations,
       recommended: formattedRecommended
     });
 
@@ -125,9 +149,18 @@ const getCreatorDashboard = async (req, res) => {
   try {
     const creatorId = req.user._id;
 
-    // 1. Get all campaigns by this creator
-    const campaigns = await Campaign.find({ creator: creatorId });
+    // 1. Get all campaigns by this creator (Summary - FN-8.2)
+    const campaigns = await Campaign.find({ creator: creatorId }).sort({ createdAt: -1 });
     const campaignIds = campaigns.map(c => c._id);
+
+    const allCampaignsSummary = campaigns.map(c => ({
+      id: c._id,
+      title: c.title,
+      status: c.status,
+      goal: c.fundingGoal,
+      raised: c.currentAmount,
+      daysLeft: c.endDate ? Math.max(0, Math.ceil((new Date(c.endDate) - new Date()) / (1000 * 60 * 60 * 24))) : 0
+    }));
 
     // 2. Aggregate stats
     let totalRaised = 0;
@@ -185,6 +218,45 @@ const getCreatorDashboard = async (req, res) => {
       const estimatedFee = primaryCampaign.currentAmount * 0.05; 
       const netRaised = primaryCampaign.currentAmount - estimatedFee;
       availableForRelease = Math.max(0, netRaised - primaryCampaign.released_amount);
+    }
+
+    // 4. Campaign Analytics (FN-8.4)
+    let fundingTrendsData = [];
+    let conversionRate = 0;
+    let demographicsData = { "Kathmandu": 45, "Pokhara": 20, "Biratnagar": 15, "Lalitpur": 12, "Other": 8 }; // Default mock
+    let rewardPopularityData = [];
+
+    if (primaryCampaign) {
+      // Aggregate transactions for primary campaign grouped by date
+      const trends = await Transaction.aggregate([
+        { 
+          $match: { 
+            campaign: primaryCampaign._id, 
+            status: 'completed' 
+          } 
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+            amount: { $sum: "$amount" }
+          }
+        },
+        { $sort: { "_id": 1 } },
+        { $limit: 30 }
+      ]);
+
+      fundingTrendsData = trends.map(t => ({ date: t._id, amount: t.amount }));
+
+      // Conversion Rate (backerCount / viewCount) * 100
+      if (primaryCampaign.viewCount > 0) {
+        conversionRate = parseFloat(((primaryCampaign.backerCount / primaryCampaign.viewCount) * 100).toFixed(2));
+      }
+
+      // Reward Popularity
+      rewardPopularityData = (primaryCampaign.rewardTiers || []).map(rt => ({
+        title: rt.title,
+        quantityClaimed: rt.quantityClaimed || 0
+      }));
     }
 
     // 4. Recent Backers
@@ -245,6 +317,11 @@ const getCreatorDashboard = async (req, res) => {
       completedMilestones,
       recentBackers,
       milestoneChartData,
+      fundingTrendsData,
+      conversionRate,
+      demographicsData,
+      rewardPopularityData,
+      allCampaigns: allCampaignsSummary,
       fundsOverview: {
         totalRaised: primaryCampaign ? primaryCampaign.currentAmount : 0,
         availableForRelease,
