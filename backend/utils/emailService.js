@@ -1,12 +1,7 @@
 const nodemailer = require('nodemailer');
 
 // Debug: Check if SMTP credentials are loaded
-console.log('SMTP Config Check:', {
-  host: process.env.SMTP_HOST || 'NOT SET',
-  port: process.env.SMTP_PORT || 'NOT SET',
-  user: process.env.SMTP_USER ? '✓ SET' : '✗ NOT SET',
-  pass: process.env.SMTP_PASS ? '✓ SET' : '✗ NOT SET'
-});
+
 
 // Create transporter for Gmail
 const transporter = nodemailer.createTransport({
@@ -68,7 +63,7 @@ const sendOTPEmail = async (email, otp, name) => {
             <!-- Expiry Notice -->
             <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 0 8px 8px 0; margin-bottom: 32px;">
               <p style="color: #92400e; font-size: 14px; margin: 0;">
-                ⏱️ This code will expire in <strong>${process.env.OTP_EXPIRY_MINUTES || 10} minutes</strong>.
+                This code will expire in <strong>${process.env.OTP_EXPIRY_MINUTES || 10} minutes</strong>.
               </p>
             </div>
             
@@ -93,7 +88,7 @@ const sendOTPEmail = async (email, otp, name) => {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log('OTP Email sent:', info.messageId);
+
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('Error sending OTP email:', error);
@@ -157,7 +152,7 @@ const sendPasswordResetEmail = async (email, otp, name) => {
             <!-- Expiry Notice -->
             <div style="background-color: #fee2e2; border-left: 4px solid #ef4444; padding: 16px; border-radius: 0 8px 8px 0; margin-bottom: 32px;">
               <p style="color: #991b1b; font-size: 14px; margin: 0;">
-                ⏱️ This code will expire in <strong>${process.env.OTP_EXPIRY_MINUTES || 10} minutes</strong>.
+                This code will expire in <strong>${process.env.OTP_EXPIRY_MINUTES || 10} minutes</strong>.
               </p>
             </div>
             
@@ -182,7 +177,7 @@ const sendPasswordResetEmail = async (email, otp, name) => {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log('Password Reset Email sent:', info.messageId);
+
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('Error sending password reset email:', error);
@@ -351,7 +346,7 @@ const sendReceiptEmail = async (transaction, campaign, backer, creator) => {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log('Receipt Email sent:', info.messageId);
+
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('Error sending receipt email:', error);
@@ -438,7 +433,7 @@ const sendDisbursementReceiptEmail = async (release, campaign, creator) => {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log('Disbursement Receipt Email sent:', info.messageId);
+
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('Error sending disbursement receipt email:', error);

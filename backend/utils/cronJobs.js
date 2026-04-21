@@ -17,7 +17,7 @@ const transporter = nodemailer.createTransport({
 const startCronJobs = () => {
   // Run every hour to check for offline users with unread messages older than 1 hour
   cron.schedule('0 * * * *', async () => {
-    console.log('Running offline email notification job...');
+
     
     try {
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
@@ -80,7 +80,7 @@ const startCronJobs = () => {
 
         try {
           await transporter.sendMail(mailOptions);
-          console.log(`Sent offline notification email to ${email}`);
+
           
           // Mark these messages as delivered (to prevent sending email again next hour)
           // Actually, we should probably mark them 'delivered' or track lastEmailSent Date

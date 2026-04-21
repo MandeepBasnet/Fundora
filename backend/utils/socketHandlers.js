@@ -33,7 +33,7 @@ const initializeSocket = (io) => {
     }
     onlineUsers.get(userId).add(socket.id);
     
-    console.log(`User connected: ${userId} | Socket ID: ${socket.id} | Total Tabs: ${onlineUsers.get(userId).size}`);
+
 
     // Join personal room for private events/notifications
     socket.join(`user_${userId}`);
@@ -112,7 +112,7 @@ const initializeSocket = (io) => {
     });
 
     socket.on('disconnect', (reason) => {
-      console.log(`User disconnected: ${userId} | Socket ID: ${socket.id} | Reason: ${reason}`);
+
       
       const userSockets = onlineUsers.get(userId);
       if (userSockets) {
@@ -122,9 +122,9 @@ const initializeSocket = (io) => {
         if (userSockets.size === 0) {
           onlineUsers.delete(userId);
           io.emit('user_status', { userId, status: 'offline' });
-          console.log(`User ${userId} is now completely offline`);
+
         } else {
-          console.log(`User ${userId} still has ${userSockets.size} active tabs`);
+
         }
       }
     });
